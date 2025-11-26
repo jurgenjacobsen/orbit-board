@@ -1,0 +1,68 @@
+<div
+  (click)="onClick()"
+  class="group bg-white dark:bg-gray-700 rounded-lg shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 p-3 cursor-pointer transition-all"
+>
+  <!-- Labels -->
+  @if (card.labels && card.labels.length > 0) {
+    <div class="flex flex-wrap gap-1 mb-2">
+      @for (label of card.labels; track label.id) {
+        <span
+          class="px-2 py-0.5 text-xs font-medium rounded-full text-white"
+          [style.backgroundColor]="label.color"
+        >
+          {{ label.name }}
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Title & Delete Button -->
+  <div class="flex items-start justify-between gap-2">
+    <h4 class="text-sm font-medium text-gray-900 dark:text-white break-words flex-1">{{ card.title }}</h4>
+    <button
+      (click)="onDelete($event)"
+      class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all shrink-0"
+      title="Delete card"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Description indicator -->
+  @if (card.description) {
+    <div class="mt-2 flex items-center gap-1 text-gray-400 dark:text-gray-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+      </svg>
+    </div>
+  }
+
+  <!-- Due date -->
+  @if (card.due_date) {
+    <div
+      class="mt-2 flex items-center gap-1 text-xs"
+      [class.text-red-500]="isOverdue()"
+      [class.text-orange-500]="isDueSoon() && !isOverdue()"
+      [class.text-gray-500]="!isOverdue() && !isDueSoon()"
+      [class.dark:text-red-400]="isOverdue()"
+      [class.dark:text-orange-400]="isDueSoon() && !isOverdue()"
+      [class.dark:text-gray-400]="!isOverdue() && !isDueSoon()"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <span>{{ formatDueDate() }}</span>
+    </div>
+  }
+
+  <!-- Notes indicator -->
+  @if (card.notes) {
+    <div class="mt-1 flex items-center gap-1 text-gray-400 dark:text-gray-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    </div>
+  }
+</div>
