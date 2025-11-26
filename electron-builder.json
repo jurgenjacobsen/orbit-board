@@ -1,0 +1,21 @@
+{
+    "appId": "com.orbitboard.app",
+    "executableName": "OrbitBoard",
+    "files": [
+        "dist-electron", "dist-react"
+    ],
+    "extraResources": [
+        "dist-electron/preload.cjs"
+    ],
+    "icon": "src/assets/icon.png",
+    "mac": {
+        "target": "dmg"
+    },
+    "linux": {
+        "target": "AppImage",
+        "category": "Utility"
+    },
+    "win": {
+        "target": ["portable", "msi"]
+    }
+}
