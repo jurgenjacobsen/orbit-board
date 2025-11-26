@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { ElectronService } from './electron.service';
 import { Board, Column, Card, Label } from '../models';
 
@@ -19,10 +19,16 @@ export class BoardService {
 
   constructor(private electronService: ElectronService) {}
 
-  // Generate unique ID
+  // Generate unique ID using crypto for better entropy
   private generateId(): string {
-    return 'xxxx-xxxx-xxxx'.replace(/[x]/g, () => {
-      return ((Math.random() * 16) | 0).toString(16);
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
     });
   }
 

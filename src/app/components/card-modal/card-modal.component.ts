@@ -63,7 +63,11 @@ export class CardModalComponent implements OnInit, OnDestroy {
   }
 
   private async autoSave(): Promise<void> {
-    await this.boardService.updateCard(this.editedCard);
+    try {
+      await this.boardService.updateCard(this.editedCard);
+    } catch (error) {
+      console.error('Failed to auto-save card:', error);
+    }
   }
 
   async saveAndClose(): Promise<void> {

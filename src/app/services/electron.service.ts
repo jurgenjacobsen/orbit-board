@@ -56,7 +56,13 @@ export class ElectronService {
   private api: ElectronAPI | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined' && window.electronAPI) {
+    this.initializeAPI();
+  }
+
+  private initializeAPI(): void {
+    if (typeof window !== 'undefined' && 
+        window.electronAPI && 
+        typeof window.electronAPI.getBoards === 'function') {
       this.api = window.electronAPI;
     }
   }

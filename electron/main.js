@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let mainWindow;
 let db;
@@ -19,7 +20,7 @@ function initDatabase() {
   
   db = new Database(dbPath);
   
-  // Enable WAL mode for better performance
+  // Enable WAL mode for better performance and concurrent read access
   db.pragma('journal_mode = WAL');
   
   // Create tables
@@ -534,9 +535,7 @@ ipcMain.handle('db:importData', async () => {
   }
 });
 
-// Helper function to generate unique IDs
+// Helper function to generate unique IDs using crypto for better entropy
 function generateId() {
-  return 'xxxx-xxxx-xxxx'.replace(/[x]/g, () => {
-    return ((Math.random() * 16) | 0).toString(16);
-  });
+  return crypto.randomUUID();
 }
