@@ -20,7 +20,10 @@ export function KanbanCard({ card, labels, onEdit, onDragStart }: KanbanCardProp
   return (
     <div
       draggable
-      onDragStart={(e) => onDragStart(e, card.id, card.column_id)}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        onDragStart(e, card.id, card.column_id);
+      }}
       onClick={() => onEdit(card)}
       className="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 cursor-pointer hover:shadow-md transition-shadow"
     >
