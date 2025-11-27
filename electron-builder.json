@@ -1,6 +1,7 @@
 {
     "appId": "com.orbitboard.app",
     "executableName": "OrbitBoard",
+    "setupExe": "OrbitBoard-Setup.exe",
     "files": [
         "dist-electron", "dist-react"
     ],

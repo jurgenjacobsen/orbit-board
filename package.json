@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.4.6",
-    "crypto": "^1.0.1",
     "os-utils": "^0.0.14",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
