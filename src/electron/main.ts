@@ -1,8 +1,10 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
 import { handleCloseEvents, isDev } from './util.js';
 import { getPreloadPath } from './pathResolver.js';
 import { createTray } from './tray.js';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
+import path from 'path';
 
 app.on('ready', () => {
     const mainWindow = new BrowserWindow({
@@ -22,4 +24,6 @@ app.on('ready', () => {
 
     createTray(mainWindow);
     handleCloseEvents(mainWindow);
+
+    autoUpdater.checkForUpdatesAndNotify();
 });
