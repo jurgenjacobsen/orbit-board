@@ -2,21 +2,22 @@ import { app } from 'electron';
 import Database from 'better-sqlite3';
 import path from 'path';
 
-let db;
-
 function getDatabasePath(): string {
     const userDataPath = app.getPath('userData');
     return path.join(userDataPath, 'OrbitBoard.db');
 }
 
-export function initDatabase() {
+export function initDatabase(): Database.Database {
   const dbPath = getDatabasePath();
   console.log('Database path:', dbPath);
 
-  db = new Database(dbPath);
+  const db = new Database(dbPath);
 
   // Enable WAL mode for better performance and concurrent read access
   db.pragma('journal_mode = WAL');
+  
+  // Enable foreign keys - this is essential for cascading deletes
+  db.pragma('foreign_keys = ON');
 
   // Create tables
   db.exec(`
