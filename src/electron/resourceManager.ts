@@ -3,6 +3,8 @@ import os from 'os';
 import fs from 'fs';
 import osUtils from 'os-utils'
 
+// TEST FILE
+
 const POLLING_INTERVAL = 500;
 
 export function pollResources(mainWindow: BrowserWindow) {
