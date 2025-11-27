@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { generateId, handleCloseEvents, isDev } from './util.js';
@@ -6,12 +6,58 @@ import { getPreloadPath } from './pathResolver.js';
 import { initDatabase } from './database.js';
 import { createTray } from './tray.js';
 
+// Store notification timeout IDs for cleanup
+const notificationTimeouts: NodeJS.Timeout[] = [];
+
+function checkDueDates(db: any, mainWindow: BrowserWindow) {
+    try {
+        // Get cards with due dates
+        const stmt = db.prepare(`
+            SELECT c.id, c.title, c.due_date, col.name as column_name, b.name as board_name
+            FROM cards c
+            JOIN columns col ON c.column_id = col.id
+            JOIN boards b ON col.board_id = b.id
+            WHERE c.due_date IS NOT NULL
+        `);
+        const cards = stmt.all() as any[];
+
+        const now = new Date();
+        const oneDayMs = 24 * 60 * 60 * 1000;
+
+        for (const card of cards) {
+            const dueDate = new Date(card.due_date);
+            const timeDiff = dueDate.getTime() - now.getTime();
+
+            // Notify if due within 24 hours or overdue
+            if (timeDiff <= oneDayMs && timeDiff > -oneDayMs) {
+                const isOverdue = timeDiff < 0;
+                const notification = new Notification({
+                    title: isOverdue ? '⚠️ Task Overdue!' : '⏰ Task Due Soon!',
+                    body: `"${card.title}" on board "${card.board_name}" is ${isOverdue ? 'overdue' : 'due within 24 hours'}`,
+                    icon: path.join(app.getAppPath(), isDev() ? '.' : '..', '/src/assets/icon.png')
+                });
+
+                notification.on('click', () => {
+                    mainWindow.show();
+                    if (app.dock) {
+                        app.dock.show();
+                    }
+                });
+
+                notification.show();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking due dates:', error);
+    }
+}
+
 app.on('ready', () => {
     const db = initDatabase();
 
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
-        icon: path.join(app.getAppPath(), '/assets/icon.png'),
+        icon: path.join(app.getAppPath(), isDev() ? '.' : '..', '/src/assets/icon.png'),
         autoHideMenuBar: true,
         webPreferences: {
             preload: getPreloadPath(),
@@ -27,7 +73,33 @@ app.on('ready', () => {
     createTray(mainWindow);
     handleCloseEvents(mainWindow);
 
+    // Check due dates every 30 minutes
+    const dueCheckInterval = setInterval(() => {
+        checkDueDates(db, mainWindow);
+    }, 30 * 60 * 1000);
+
+    // Initial check after app starts (with 5 second delay)
+    const initialCheck = setTimeout(() => {
+        checkDueDates(db, mainWindow);
+    }, 5000);
+    notificationTimeouts.push(initialCheck);
+
+    app.on('before-quit', () => {
+        clearInterval(dueCheckInterval);
+        notificationTimeouts.forEach(t => clearTimeout(t));
+    });
+
     // Database IPC Handlers
+    // Get all boards
+    ipcMain.handle('db:getBoards', () => {
+        try {
+            const stmt = db.prepare('SELECT * FROM boards ORDER BY created_at DESC');
+            return { success: true, data: stmt.all() };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
     ipcMain.handle('db:getBoard', (event, id) => {
   try {
     const stmt = db.prepare('SELECT * FROM boards WHERE id = ?');
