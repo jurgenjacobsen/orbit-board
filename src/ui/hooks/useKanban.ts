@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Board, Column, Card, Label } from '../types';
+import type { Board, Column, Card, Label } from '../types';
 
 export function useKanban() {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -11,7 +11,17 @@ export function useKanban() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateId = () => crypto.randomUUID();
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
 
   // Board operations
   const fetchBoards = useCallback(async () => {
@@ -23,8 +33,8 @@ export function useKanban() {
       } else {
         setError(result.error);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);
     }
@@ -103,8 +113,8 @@ export function useKanban() {
         }
         setCardLabels(labelMap);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);
     }

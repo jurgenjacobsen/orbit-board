@@ -95,8 +95,8 @@ app.on('ready', () => {
         try {
             const stmt = db.prepare('SELECT * FROM boards ORDER BY created_at DESC');
             return { success: true, data: stmt.all() };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
