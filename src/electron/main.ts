@@ -28,6 +28,15 @@ app.on('ready', () => {
     handleCloseEvents(mainWindow);
 
     // Database IPC Handlers
+    ipcMain.handle('db:getBoards', () => {
+        try {
+            const stmt = db.prepare('SELECT * FROM boards ORDER BY updated_at DESC');
+            return { success: true, data: stmt.all() };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
     ipcMain.handle('db:getBoard', (event, id) => {
   try {
     const stmt = db.prepare('SELECT * FROM boards WHERE id = ?');
