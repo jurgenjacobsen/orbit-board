@@ -1,4 +1,5 @@
 {
+    "productName": "Orbit Board",
     "appId": "com.orbitboard.app",
     "executableName": "OrbitBoard",
     "files": [
@@ -17,6 +18,6 @@
     },
     "win": {
         "target": ["portable", "msi"],
-        "artifactName": "${productName}-Setup-${version}.${ext}"
+        "artifactName": "${productName}Setup-${version}.${ext}"
     }
 }
