@@ -20,15 +20,16 @@
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
     "test:e2e": "playwright test",
     "test:unit": "vitest src",
-
     "publish:win": "npm run dist:win && electron-builder --publish=always --win --x64"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.6",
     "electron-updater": "^6.6.2",
+    "lucide-react": "^0.555.0",
     "os-utils": "^0.0.14",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.10.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

@@ -10,21 +10,35 @@ export function createTray(mainWindow: BrowserWindow) {
     )
   );
 
+  tray.on('double-click', () => {
+    mainWindow.show();
+    if (app.dock) {
+        app.dock.show();
+    }
+  });
+
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      {
-        label: 'Show',
-        click: () => {
-          mainWindow.show();
-          if (app.dock) {
-            app.dock.show();
-          }
+        {
+            label: 'Orbit Board' + " ".repeat(10),
+            enabled: false,
         },
-      },
-      {
-        label: 'Quit',
-        click: () => app.quit(),
-      },
+        {
+        type: 'separator',
+        },
+        {
+            label: 'Show',
+            click: () => {
+                mainWindow.show();
+                if (app.dock) {
+                    app.dock.show();
+                }
+            },
+        },
+        {
+            label: 'Quit',
+            click: () => app.quit(),
+        },
     ])
   );
 }
