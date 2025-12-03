@@ -17,3 +17,8 @@ export function getUIPath() {
 export function getAssetPath() {
   return path.join(app.getAppPath(), isDev() ? '.' : '..', '/src/assets');
 }
+
+export function getDatabasePath(): string {
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, 'OrbitBoard.db');
+}

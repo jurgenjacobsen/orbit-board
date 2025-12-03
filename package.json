@@ -20,10 +20,12 @@
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
     "test:e2e": "playwright test",
     "test:unit": "vitest src",
-    "publish:win": "npm run dist:win && electron-builder --publish=always --win --x64"
+    "publish:win": "npm run dist:win && electron-builder --publish=always --win --x64",
+    "fix:sqlite": "npm rebuild better-sqlite3 --runtime=electron --target=39.2.4"
   },
   "dependencies": {
-    "better-sqlite3": "^12.4.6",
+    "better-sqlite3": "^12.5.0",
+    "crypto": "^1.0.1",
     "electron-updater": "^6.6.2",
     "lucide-react": "^0.555.0",
     "os-utils": "^0.0.14",

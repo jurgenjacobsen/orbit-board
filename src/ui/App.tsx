@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Home, Settings, User, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage.tsx';
+import SettingsPage from './pages/SettingsPage.tsx';
 
 function App() {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -15,7 +16,7 @@ function App() {
 
     return (
         <Router>
-            <div className='min-h-screen'>
+            <div className={`min-h-screen dark:bg-gray-900 dark:text-white bg-white text-gray-900`}>
                 <aside className={
                     `fixed top-0 left-0 h-screen ${isExpanded ? 'w-72' : 'w-24'} transition-all duration-300`
                 }>
@@ -64,7 +65,7 @@ function App() {
                 <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 mt-4`}>
                     <Routes>
                         <Route path='/' element={<HomePage />} />
-                        {/* Additional routes can be added here */}
+                        <Route path='/settings' element={<SettingsPage />} />
                     </Routes>
                 </main>
             </div>
