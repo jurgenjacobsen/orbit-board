@@ -1,7 +1,7 @@
 {
   "name": "orbit-board",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "main": "dist-electron/main.js",
   "description": "A local kanban board application powered by Electron, Angular, Tailwind, and SQLite. Supports multiple boards, drag & drop, labels, due dates, dark mode, and offline autosave.",
