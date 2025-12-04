@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { getApi } from "../utils/mockApi";
 
 declare global {
     interface Window {
@@ -28,7 +29,8 @@ export default function Home() {
 
     const loadBoards = async () => {
         try {
-            const result = await window.api.getBoards();
+            const api = getApi();
+            const result = await api.getBoards();
             if (result.success) {
                 setBoards(result.data);
             }
@@ -41,13 +43,14 @@ export default function Home() {
         if (!newBoardName.trim()) return;
 
         try {
+            const api = getApi();
             const board = {
                 id: crypto.randomUUID(),
                 name: newBoardName,
                 description: newBoardDescription || null,
             };
             
-            const result = await window.api.createBoard(board);
+            const result = await api.createBoard(board);
             if (result.success) {
                 await loadBoards();
                 setIsCreating(false);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
+import { getApi } from "../utils/mockApi";
 
 declare global {
     interface Window {
@@ -59,7 +60,8 @@ export default function BoardPage() {
 
     const loadBoard = async () => {
         try {
-            const result = await window.api.getBoard(boardId);
+            const api = getApi();
+            const result = await api.getBoard(boardId);
             if (result.success) {
                 setBoard(result.data);
             }
@@ -70,7 +72,8 @@ export default function BoardPage() {
 
     const loadColumns = async () => {
         try {
-            const result = await window.api.getColumns(boardId);
+            const api = getApi();
+            const result = await api.getColumns(boardId);
             if (result.success) {
                 const sortedColumns = result.data.sort((a: Column, b: Column) => a.position - b.position);
                 setColumns(sortedColumns);
@@ -87,7 +90,8 @@ export default function BoardPage() {
 
     const loadCards = async (columnId: string) => {
         try {
-            const result = await window.api.getCards(columnId);
+            const api = getApi();
+            const result = await api.getCards(columnId);
             if (result.success) {
                 const sortedCards = result.data.sort((a: Card, b: Card) => a.position - b.position);
                 setCards(prev => ({ ...prev, [columnId]: sortedCards }));
@@ -101,6 +105,7 @@ export default function BoardPage() {
         if (!newColumnName.trim() || !boardId) return;
 
         try {
+            const api = getApi();
             const column = {
                 id: crypto.randomUUID(),
                 board_id: boardId,
@@ -108,7 +113,7 @@ export default function BoardPage() {
                 position: columns.length,
             };
 
-            const result = await window.api.createColumn(column);
+            const result = await api.createColumn(column);
             if (result.success) {
                 await loadColumns();
                 setIsAddingColumn(false);
@@ -123,7 +128,8 @@ export default function BoardPage() {
         if (!confirm("Are you sure you want to delete this column? All cards in it will be deleted.")) return;
 
         try {
-            const result = await window.api.deleteColumn(columnId);
+            const api = getApi();
+            const result = await api.deleteColumn(columnId);
             if (result.success) {
                 await loadColumns();
             }
@@ -136,6 +142,7 @@ export default function BoardPage() {
         if (!newCardTitle.trim()) return;
 
         try {
+            const api = getApi();
             const columnCards = cards[columnId] || [];
             const card = {
                 id: crypto.randomUUID(),
@@ -147,7 +154,7 @@ export default function BoardPage() {
                 position: columnCards.length,
             };
 
-            const result = await window.api.createCard(card);
+            const result = await api.createCard(card);
             if (result.success) {
                 await loadCards(columnId);
                 setIsAddingCard(null);
@@ -162,7 +169,8 @@ export default function BoardPage() {
         if (!confirm("Are you sure you want to delete this card?")) return;
 
         try {
-            const result = await window.api.deleteCard(cardId);
+            const api = getApi();
+            const result = await api.deleteCard(cardId);
             if (result.success) {
                 await loadCards(columnId);
             }
@@ -173,7 +181,8 @@ export default function BoardPage() {
 
     const updateCard = async (card: Card) => {
         try {
-            const result = await window.api.updateCard(card);
+            const api = getApi();
+            const result = await api.updateCard(card);
             if (result.success) {
                 await loadCards(card.column_id);
                 setEditingCard(null);
@@ -212,7 +221,8 @@ export default function BoardPage() {
         };
 
         try {
-            const result = await window.api.updateCard(updatedCard);
+            const api = getApi();
+            const result = await api.updateCard(updatedCard);
             if (result.success) {
                 // Reload both columns
                 await loadCards(draggedCard.column_id);
