@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "main": "dist-electron/main.js",
-  "description": "A local kanban board application powered by Electron, Angular, Tailwind, and SQLite. Supports multiple boards, drag & drop, labels, due dates, dark mode, and offline autosave.",
+  "description": "A local kanban board application powered by Electron, React, Tailwind, and lowdb. Supports multiple boards, drag & drop, labels, due dates, dark mode, and offline autosave.",
   "author": {
     "name": "Jürgen Jacobsen"
   },
@@ -20,13 +20,12 @@
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
     "test:e2e": "playwright test",
     "test:unit": "vitest src",
-    "publish:win": "npm run dist:win && electron-builder --publish=always --win --x64",
-    "fix:sqlite": "npm rebuild better-sqlite3 --runtime=electron --target=39.2.4"
+    "publish:win": "npm run dist:win && electron-builder --publish=always --win --x64"
   },
   "dependencies": {
-    "better-sqlite3": "^12.5.0",
     "crypto": "^1.0.1",
     "electron-updater": "^6.6.2",
+    "lowdb": "^7.0.1",
     "lucide-react": "^0.555.0",
     "os-utils": "^0.0.14",
     "react": "^19.1.0",
@@ -37,7 +36,6 @@
     "@eslint/js": "^9.25.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.1.17",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.1",
     "@types/os-utils": "^0.0.4",
     "@types/react": "^19.1.2",

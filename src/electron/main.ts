@@ -5,28 +5,35 @@ import { createTray } from './tray.js';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import path from 'path';
-import type { Database } from 'better-sqlite3';
+import type { LowDatabase } from './database.js';
 import { initDatabase } from './database.js';
 import fs from 'fs';
 
 const notificationTimeouts: NodeJS.Timeout[] = [];
 
-function checkDueDates(db: Database, mainWindow: BrowserWindow) {
+async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
     try {
-        // Get cards with due dates
-        const stmt = db.prepare(`
-            SELECT c.id, c.title, c.due_date, col.name as column_name, b.name as board_name
-            FROM cards c
-            JOIN columns col ON c.column_id = col.id
-            JOIN boards b ON col.board_id = b.id
-            WHERE c.due_date IS NOT NULL
-        `);
-        const cards = stmt.all() as any[];
+        await db.read();
+        
+        // Get cards with due dates by joining data
+        const cardsWithDueDates = db.data.cards
+            .filter(card => card.due_date)
+            .map(card => {
+                const column = db.data.columns.find(col => col.id === card.column_id);
+                const board = column ? db.data.boards.find(b => b.id === column.board_id) : null;
+                return {
+                    ...card,
+                    column_name: column?.name,
+                    board_name: board?.name
+                };
+            });
 
         const now = new Date();
         const oneDayMs = 24 * 60 * 60 * 1000;
 
-        for (const card of cards) {
+        for (const card of cardsWithDueDates) {
+            if (!card.due_date) continue;
+            
             const dueDate = new Date(card.due_date);
             const timeDiff = dueDate.getTime() - now.getTime();
 
@@ -54,8 +61,8 @@ function checkDueDates(db: Database, mainWindow: BrowserWindow) {
     }
 }
 
-app.on('ready', () => {
-    const db = initDatabase();
+app.on('ready', async () => {
+    const db = await initDatabase();
 
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
@@ -95,55 +102,93 @@ app.on('ready', () => {
 
     // Database IPC Handlers
     // Get all boards
-    ipcMain.handle('db:getBoards', () => {
+    ipcMain.handle('db:getBoards', async () => {
         try {
-            const stmt = db.prepare('SELECT * FROM boards ORDER BY created_at DESC');
-            return { success: true, data: stmt.all() };
+            await db.read();
+            const boards = [...db.data.boards].sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            return { success: true, data: boards };
         } catch (error: unknown) {
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:getBoard', (event, id) => {
+    ipcMain.handle('db:getBoard', async (event, id) => {
         try {
-            const stmt = db.prepare('SELECT * FROM boards WHERE id = ?');
-            return { success: true, data: stmt.get(id) };
+            await db.read();
+            const board = db.data.boards.find(b => b.id === id);
+            return { success: true, data: board };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:createBoard', (event, board) => {
+    ipcMain.handle('db:createBoard', async (event, board) => {
         try {
-            const stmt = db.prepare('INSERT INTO boards (id, name, description) VALUES (?, ?, ?)');
-            stmt.run(board.id, board.name, board.description || null);
+            await db.read();
+            
+            const newBoard = {
+                ...board,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            db.data.boards.push(newBoard);
 
             // Create default columns
-            const columnStmt = db.prepare('INSERT INTO columns (id, board_id, name, position) VALUES (?, ?, ?, ?)');
-            columnStmt.run(generateId(), board.id, 'To Do', 0);
-            columnStmt.run(generateId(), board.id, 'In Progress', 1);
-            columnStmt.run(generateId(), board.id, 'Done', 2);
+            const defaultColumns = [
+                { id: generateId(), board_id: board.id, name: 'To Do', position: 0, created_at: new Date().toISOString() },
+                { id: generateId(), board_id: board.id, name: 'In Progress', position: 1, created_at: new Date().toISOString() },
+                { id: generateId(), board_id: board.id, name: 'Done', position: 2, created_at: new Date().toISOString() }
+            ];
+            db.data.columns.push(...defaultColumns);
 
+            await db.write();
+            return { success: true, data: newBoard };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('db:updateBoard', async (event, board) => {
+        try {
+            await db.read();
+            const index = db.data.boards.findIndex(b => b.id === board.id);
+            if (index >= 0) {
+                db.data.boards[index] = {
+                    ...board,
+                    updated_at: new Date().toISOString()
+                };
+                await db.write();
+            }
             return { success: true, data: board };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateBoard', (event, board) => {
+    ipcMain.handle('db:deleteBoard', async (event, id) => {
         try {
-            const stmt = db.prepare('UPDATE boards SET name = ?, description = ?, updated_at = datetime("now") WHERE id = ?');
-            stmt.run(board.name, board.description || null, board.id);
-            return { success: true, data: board };
-        } catch (error: any) {
-            return { success: false, error: error.message };
-        }
-    });
-
-    ipcMain.handle('db:deleteBoard', (event, id) => {
-        try {
-            const stmt = db.prepare('DELETE FROM boards WHERE id = ?');
-            stmt.run(id);
+            await db.read();
+            
+            // Delete board
+            db.data.boards = db.data.boards.filter(b => b.id !== id);
+            
+            // Delete associated columns
+            const columnIds = db.data.columns.filter(c => c.board_id === id).map(c => c.id);
+            db.data.columns = db.data.columns.filter(c => c.board_id !== id);
+            
+            // Delete associated cards
+            db.data.cards = db.data.cards.filter(c => !columnIds.includes(c.column_id));
+            
+            // Delete associated labels
+            const labelIds = db.data.labels.filter(l => l.board_id === id).map(l => l.id);
+            db.data.labels = db.data.labels.filter(l => l.board_id !== id);
+            
+            // Delete associated card_labels
+            db.data.card_labels = db.data.card_labels.filter(cl => !labelIds.includes(cl.label_id));
+            
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -151,54 +196,74 @@ app.on('ready', () => {
     });
 
     // Column operations
-    ipcMain.handle('db:getColumns', (event, boardId) => {
+    ipcMain.handle('db:getColumns', async (event, boardId) => {
         try {
-            const stmt = db.prepare('SELECT * FROM columns WHERE board_id = ? ORDER BY position ASC');
-            return { success: true, data: stmt.all(boardId) };
+            await db.read();
+            const columns = db.data.columns
+                .filter(c => c.board_id === boardId)
+                .sort((a, b) => a.position - b.position);
+            return { success: true, data: columns };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:createColumn', (event, column) => {
+    ipcMain.handle('db:createColumn', async (event, column) => {
         try {
-            const stmt = db.prepare('INSERT INTO columns (id, board_id, name, position) VALUES (?, ?, ?, ?)');
-            stmt.run(column.id, column.board_id, column.name, column.position);
+            await db.read();
+            const newColumn = {
+                ...column,
+                created_at: new Date().toISOString()
+            };
+            db.data.columns.push(newColumn);
+            await db.write();
+            return { success: true, data: newColumn };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('db:updateColumn', async (event, column) => {
+        try {
+            await db.read();
+            const index = db.data.columns.findIndex(c => c.id === column.id);
+            if (index >= 0) {
+                db.data.columns[index] = column;
+                await db.write();
+            }
             return { success: true, data: column };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateColumn', (event, column) => {
+    ipcMain.handle('db:deleteColumn', async (event, id) => {
         try {
-            const stmt = db.prepare('UPDATE columns SET name = ?, position = ? WHERE id = ?');
-            stmt.run(column.name, column.position, column.id);
-            return { success: true, data: column };
-        } catch (error: any) {
-            return { success: false, error: error.message };
-        }
-    });
-
-    ipcMain.handle('db:deleteColumn', (event, id) => {
-        try {
-            const stmt = db.prepare('DELETE FROM columns WHERE id = ?');
-            stmt.run(id);
+            await db.read();
+            
+            // Delete column
+            db.data.columns = db.data.columns.filter(c => c.id !== id);
+            
+            // Delete associated cards
+            db.data.cards = db.data.cards.filter(c => c.column_id !== id);
+            
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateColumnsPositions', (event, columns) => {
+    ipcMain.handle('db:updateColumnsPositions', async (event, columns) => {
         try {
-            const stmt = db.prepare('UPDATE columns SET position = ? WHERE id = ?');
-            const transaction = db.transaction((cols) => {
-                for (const col of cols) {
-                    stmt.run(col.position, col.id);
+            await db.read();
+            for (const col of columns) {
+                const index = db.data.columns.findIndex(c => c.id === col.id);
+                if (index >= 0) {
+                    db.data.columns[index].position = col.position;
                 }
-            });
-            transaction(columns);
+            }
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -206,75 +271,88 @@ app.on('ready', () => {
     });
 
     // Card operations
-    ipcMain.handle('db:getCards', (event, columnId) => {
+    ipcMain.handle('db:getCards', async (event, columnId) => {
         try {
-            const stmt = db.prepare('SELECT * FROM cards WHERE column_id = ? ORDER BY position ASC');
-            return { success: true, data: stmt.all(columnId) };
+            await db.read();
+            const cards = db.data.cards
+                .filter(c => c.column_id === columnId)
+                .sort((a, b) => a.position - b.position);
+            return { success: true, data: cards };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:getCardsByBoard', (event, boardId) => {
+    ipcMain.handle('db:getCardsByBoard', async (event, boardId) => {
         try {
-            const stmt = db.prepare(`
-            SELECT c.* FROM cards c
-            JOIN columns col ON c.column_id = col.id
-            WHERE col.board_id = ?
-            ORDER BY c.position ASC
-            `);
-            return { success: true, data: stmt.all(boardId) };
+            await db.read();
+            const columnIds = db.data.columns
+                .filter(col => col.board_id === boardId)
+                .map(col => col.id);
+            const cards = db.data.cards
+                .filter(c => columnIds.includes(c.column_id))
+                .sort((a, b) => a.position - b.position);
+            return { success: true, data: cards };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:createCard', (event, card) => {
+    ipcMain.handle('db:createCard', async (event, card) => {
         try {
-            const stmt = db.prepare(`
-            INSERT INTO cards (id, column_id, title, description, notes, due_date, position)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            `);
-            stmt.run(card.id, card.column_id, card.title, card.description || null, card.notes || null, card.due_date || null, card.position);
+            await db.read();
+            const newCard = {
+                ...card,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            db.data.cards.push(newCard);
+            await db.write();
+            return { success: true, data: newCard };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('db:updateCard', async (event, card) => {
+        try {
+            await db.read();
+            const index = db.data.cards.findIndex(c => c.id === card.id);
+            if (index >= 0) {
+                db.data.cards[index] = {
+                    ...card,
+                    updated_at: new Date().toISOString()
+                };
+                await db.write();
+            }
             return { success: true, data: card };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateCard', (event, card) => {
+    ipcMain.handle('db:deleteCard', async (event, id) => {
         try {
-            const stmt = db.prepare(`
-            UPDATE cards SET
-                column_id = ?, title = ?, description = ?, notes = ?, due_date = ?, position = ?, updated_at = datetime("now")
-            WHERE id = ?
-            `);
-            stmt.run(card.column_id, card.title, card.description || null, card.notes || null, card.due_date || null, card.position, card.id);
-            return { success: true, data: card };
-        } catch (error: any) {
-            return { success: false, error: error.message };
-        }
-    });
-
-    ipcMain.handle('db:deleteCard', (event, id) => {
-        try {
-            const stmt = db.prepare('DELETE FROM cards WHERE id = ?');
-            stmt.run(id);
+            await db.read();
+            db.data.cards = db.data.cards.filter(c => c.id !== id);
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateCardsPositions', (event, cards) => {
+    ipcMain.handle('db:updateCardsPositions', async (event, cards) => {
         try {
-            const stmt = db.prepare('UPDATE cards SET column_id = ?, position = ? WHERE id = ?');
-            const transaction = db.transaction((cardList) => {
-            for (const card of cardList) {
-                stmt.run(card.column_id, card.position, card.id);
+            await db.read();
+            for (const card of cards) {
+                const index = db.data.cards.findIndex(c => c.id === card.id);
+                if (index >= 0) {
+                    db.data.cards[index].column_id = card.column_id;
+                    db.data.cards[index].position = card.position;
+                }
             }
-            });
-            transaction(cards);
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -282,39 +360,47 @@ app.on('ready', () => {
     });
 
     // Label operations
-    ipcMain.handle('db:getLabels', (event, boardId) => {
+    ipcMain.handle('db:getLabels', async (event, boardId) => {
         try {
-            const stmt = db.prepare('SELECT * FROM labels WHERE board_id = ?');
-            return { success: true, data: stmt.all(boardId) };
+            await db.read();
+            const labels = db.data.labels.filter(l => l.board_id === boardId);
+            return { success: true, data: labels };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:createLabel', (event, label) => {
+    ipcMain.handle('db:createLabel', async (event, label) => {
         try {
-            const stmt = db.prepare('INSERT INTO labels (id, name, color, board_id) VALUES (?, ?, ?, ?)');
-            stmt.run(label.id, label.name, label.color, label.board_id);
+            await db.read();
+            db.data.labels.push(label);
+            await db.write();
             return { success: true, data: label };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:updateLabel', (event, label) => {
+    ipcMain.handle('db:updateLabel', async (event, label) => {
         try {
-            const stmt = db.prepare('UPDATE labels SET name = ?, color = ? WHERE id = ?');
-            stmt.run(label.name, label.color, label.id);
+            await db.read();
+            const index = db.data.labels.findIndex(l => l.id === label.id);
+            if (index >= 0) {
+                db.data.labels[index] = label;
+                await db.write();
+            }
             return { success: true, data: label };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:deleteLabel', (event, id) => {
+    ipcMain.handle('db:deleteLabel', async (event, id) => {
         try {
-            const stmt = db.prepare('DELETE FROM labels WHERE id = ?');
-            stmt.run(id);
+            await db.read();
+            db.data.labels = db.data.labels.filter(l => l.id !== id);
+            db.data.card_labels = db.data.card_labels.filter(cl => cl.label_id !== id);
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -322,33 +408,43 @@ app.on('ready', () => {
     });
 
     // Card-Label operations
-    ipcMain.handle('db:getCardLabels', (event, cardId) => {
+    ipcMain.handle('db:getCardLabels', async (event, cardId) => {
         try {
-            const stmt = db.prepare(`
-            SELECT l.* FROM labels l
-            JOIN card_labels cl ON l.id = cl.label_id
-            WHERE cl.card_id = ?
-            `);
-            return { success: true, data: stmt.all(cardId) };
+            await db.read();
+            const labelIds = db.data.card_labels
+                .filter(cl => cl.card_id === cardId)
+                .map(cl => cl.label_id);
+            const labels = db.data.labels.filter(l => labelIds.includes(l.id));
+            return { success: true, data: labels };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:addLabelToCard', (event, { cardId, labelId }) => {
+    ipcMain.handle('db:addLabelToCard', async (event, { cardId, labelId }) => {
         try {
-            const stmt = db.prepare('INSERT OR IGNORE INTO card_labels (card_id, label_id) VALUES (?, ?)');
-            stmt.run(cardId, labelId);
+            await db.read();
+            // Check if it already exists
+            const exists = db.data.card_labels.some(
+                cl => cl.card_id === cardId && cl.label_id === labelId
+            );
+            if (!exists) {
+                db.data.card_labels.push({ card_id: cardId, label_id: labelId });
+                await db.write();
+            }
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:removeLabelFromCard', (event, { cardId, labelId }) => {
+    ipcMain.handle('db:removeLabelFromCard', async (event, { cardId, labelId }) => {
         try {
-            const stmt = db.prepare('DELETE FROM card_labels WHERE card_id = ? AND label_id = ?');
-            stmt.run(cardId, labelId);
+            await db.read();
+            db.data.card_labels = db.data.card_labels.filter(
+                cl => !(cl.card_id === cardId && cl.label_id === labelId)
+            );
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -356,20 +452,26 @@ app.on('ready', () => {
     });
 
     // Settings operations
-    ipcMain.handle('db:getSetting', (event, key) => {
+    ipcMain.handle('db:getSetting', async (event, key) => {
         try {
-            const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-            const result = stmt.get(key) as any;
-            return { success: true, data: result ? result.value : null };
+            await db.read();
+            const setting = db.data.settings.find(s => s.key === key);
+            return { success: true, data: setting ? setting.value : null };
         } catch (error: any) {
             return { success: false, error: error.message };
         }
     });
 
-    ipcMain.handle('db:setSetting', (event, { key, value }) => {
+    ipcMain.handle('db:setSetting', async (event, { key, value }) => {
         try {
-            const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-            stmt.run(key, value);
+            await db.read();
+            const index = db.data.settings.findIndex(s => s.key === key);
+            if (index >= 0) {
+                db.data.settings[index].value = value;
+            } else {
+                db.data.settings.push({ key, value });
+            }
+            await db.write();
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
@@ -379,22 +481,17 @@ app.on('ready', () => {
     // Export/Import operations
     ipcMain.handle('db:exportData', async () => {
         try {
-            const boards = db.prepare('SELECT * FROM boards').all();
-            const columns = db.prepare('SELECT * FROM columns').all();
-            const cards = db.prepare('SELECT * FROM cards').all();
-            const labels = db.prepare('SELECT * FROM labels').all();
-            const cardLabels = db.prepare('SELECT * FROM card_labels').all();
-            const settings = db.prepare('SELECT * FROM settings').all();
+            await db.read();
 
             const exportData = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
-                boards,
-                columns,
-                cards,
-                labels,
-                cardLabels,
-                settings
+                boards: db.data.boards,
+                columns: db.data.columns,
+                cards: db.data.cards,
+                labels: db.data.labels,
+                cardLabels: db.data.card_labels,
+                settings: db.data.settings
             };
 
             const { filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -422,64 +519,28 @@ app.on('ready', () => {
             });
 
             if (filePaths && filePaths.length > 0) {
-            const fileContent = fs.readFileSync(filePaths[0], 'utf-8');
-            const importData = JSON.parse(fileContent);
+                const fileContent = fs.readFileSync(filePaths[0], 'utf-8');
+                const importData = JSON.parse(fileContent);
 
-            // Validate import data structure
-            if (!importData.version || !importData.boards) {
-                return { success: false, error: 'Invalid import file format' };
-            }
-
-            // Clear existing data and import new data
-            const transaction = db.transaction(() => {
-                // Clear existing data
-                db.exec('DELETE FROM card_labels');
-                db.exec('DELETE FROM labels');
-                db.exec('DELETE FROM cards');
-                db.exec('DELETE FROM columns');
-                db.exec('DELETE FROM boards');
-
-                // Import boards
-                const boardStmt = db.prepare('INSERT INTO boards (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
-                for (const board of importData.boards) {
-                    boardStmt.run(board.id, board.name, board.description, board.created_at, board.updated_at);
+                // Validate import data structure
+                if (!importData.version || !importData.boards) {
+                    return { success: false, error: 'Invalid import file format' };
                 }
 
-                // Import columns
-                const columnStmt = db.prepare('INSERT INTO columns (id, board_id, name, position, created_at) VALUES (?, ?, ?, ?, ?)');
-                for (const column of importData.columns) {
-                    columnStmt.run(column.id, column.board_id, column.name, column.position, column.created_at);
-                }
+                await db.read();
 
-                // Import cards
-                const cardStmt = db.prepare('INSERT INTO cards (id, column_id, title, description, notes, due_date, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                for (const card of importData.cards) {
-                    cardStmt.run(card.id, card.column_id, card.title, card.description, card.notes, card.due_date, card.position, card.created_at, card.updated_at);
-                }
-
-                // Import labels
-                const labelStmt = db.prepare('INSERT INTO labels (id, name, color, board_id) VALUES (?, ?, ?, ?)');
-                for (const label of importData.labels) {
-                    labelStmt.run(label.id, label.name, label.color, label.board_id);
-                }
-
-                // Import card-labels
-                const cardLabelStmt = db.prepare('INSERT INTO card_labels (card_id, label_id) VALUES (?, ?)');
-                for (const cl of importData.cardLabels) {
-                    cardLabelStmt.run(cl.card_id, cl.label_id);
-                }
-
-                // Import settings
+                // Replace all data
+                db.data.boards = importData.boards || [];
+                db.data.columns = importData.columns || [];
+                db.data.cards = importData.cards || [];
+                db.data.labels = importData.labels || [];
+                db.data.card_labels = importData.cardLabels || [];
                 if (importData.settings) {
-                const settingStmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-                    for (const setting of importData.settings) {
-                        settingStmt.run(setting.key, setting.value);
-                    }
+                    db.data.settings = importData.settings;
                 }
-            });
 
-            transaction();
-            return { success: true, data: 'Import successful' };
+                await db.write();
+                return { success: true, data: 'Import successful' };
             }
             return { success: false, error: 'Import cancelled' };
         } catch (error: any) {
