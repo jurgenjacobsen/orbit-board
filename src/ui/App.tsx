@@ -4,6 +4,7 @@ import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Home, Settings, User, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import BoardPage from './pages/BoardPage.tsx';
 
 function App() {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -65,6 +66,7 @@ function App() {
                 <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 mt-4`}>
                     <Routes>
                         <Route path='/' element={<HomePage />} />
+                        <Route path='/board/:boardId' element={<BoardPage />} />
                         <Route path='/settings' element={<SettingsPage />} />
                     </Routes>
                 </main>
