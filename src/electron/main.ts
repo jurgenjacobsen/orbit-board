@@ -32,9 +32,7 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
         const oneDayMs = 24 * 60 * 60 * 1000;
 
         for (const card of cardsWithDueDates) {
-            if (!card.due_date) continue;
-            
-            const dueDate = new Date(card.due_date);
+            const dueDate = new Date(card.due_date!);
             const timeDiff = dueDate.getTime() - now.getTime();
 
             // Notify if due within 24 hours or overdue
@@ -105,7 +103,7 @@ app.on('ready', async () => {
     ipcMain.handle('db:getBoards', async () => {
         try {
             await db.read();
-            const boards = [...db.data.boards].sort((a, b) => 
+            const boards = db.data.boards.slice().sort((a, b) => 
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
             return { success: true, data: boards };
@@ -174,19 +172,31 @@ app.on('ready', async () => {
             // Delete board
             db.data.boards = db.data.boards.filter(b => b.id !== id);
             
-            // Delete associated columns
-            const columnIds = db.data.columns.filter(c => c.board_id === id).map(c => c.id);
-            db.data.columns = db.data.columns.filter(c => c.board_id !== id);
+            // Collect column IDs and delete columns in one pass
+            const columnIds = new Set<string>();
+            db.data.columns = db.data.columns.filter(c => {
+                if (c.board_id === id) {
+                    columnIds.add(c.id);
+                    return false;
+                }
+                return true;
+            });
             
             // Delete associated cards
-            db.data.cards = db.data.cards.filter(c => !columnIds.includes(c.column_id));
+            db.data.cards = db.data.cards.filter(c => !columnIds.has(c.column_id));
             
-            // Delete associated labels
-            const labelIds = db.data.labels.filter(l => l.board_id === id).map(l => l.id);
-            db.data.labels = db.data.labels.filter(l => l.board_id !== id);
+            // Collect label IDs and delete labels in one pass
+            const labelIds = new Set<string>();
+            db.data.labels = db.data.labels.filter(l => {
+                if (l.board_id === id) {
+                    labelIds.add(l.id);
+                    return false;
+                }
+                return true;
+            });
             
             // Delete associated card_labels
-            db.data.card_labels = db.data.card_labels.filter(cl => !labelIds.includes(cl.label_id));
+            db.data.card_labels = db.data.card_labels.filter(cl => !labelIds.has(cl.label_id));
             
             await db.write();
             return { success: true };
