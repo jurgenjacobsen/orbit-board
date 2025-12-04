@@ -20,5 +20,5 @@ export function getAssetPath() {
 
 export function getDatabasePath(): string {
     const userDataPath = app.getPath('userData');
-    return path.join(userDataPath, 'OrbitBoard.db');
+    return path.join(userDataPath, 'OrbitBoard.json');
 }
