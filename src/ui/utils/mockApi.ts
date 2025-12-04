@@ -107,8 +107,8 @@ export const mockApi = {
         const board = mockBoards.find(b => b.id === id);
         return { success: true, data: board || mockBoards[0] };
     },
-    createBoard: async (board: any) => {
-        const newBoard = {
+    createBoard: async (board: Omit<MockBoard, 'created_at' | 'updated_at'>) => {
+        const newBoard: MockBoard = {
             ...board,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -116,7 +116,7 @@ export const mockApi = {
         mockBoards.push(newBoard);
         return { success: true, data: newBoard };
     },
-    updateBoard: async (board: any) => {
+    updateBoard: async (board: MockBoard) => {
         const index = mockBoards.findIndex(b => b.id === board.id);
         if (index >= 0) {
             mockBoards[index] = { ...board, updated_at: new Date().toISOString() };
@@ -131,15 +131,15 @@ export const mockApi = {
         const columns = mockColumns.filter(c => c.board_id === boardId);
         return { success: true, data: columns };
     },
-    createColumn: async (column: any) => {
-        const newColumn = {
+    createColumn: async (column: Omit<MockColumn, 'created_at'>) => {
+        const newColumn: MockColumn = {
             ...column,
             created_at: new Date().toISOString(),
         };
         mockColumns.push(newColumn);
         return { success: true, data: newColumn };
     },
-    updateColumn: async (column: any) => {
+    updateColumn: async (column: MockColumn) => {
         const index = mockColumns.findIndex(c => c.id === column.id);
         if (index >= 0) {
             mockColumns[index] = column;
@@ -151,7 +151,7 @@ export const mockApi = {
         mockCards = mockCards.filter(c => c.column_id !== id);
         return { success: true };
     },
-    updateColumnsPositions: async (columns: any[]) => {
+    updateColumnsPositions: async (columns: Array<{ id: string; position: number }>) => {
         for (const col of columns) {
             const index = mockColumns.findIndex(c => c.id === col.id);
             if (index >= 0) {
@@ -169,8 +169,8 @@ export const mockApi = {
         const cards = mockCards.filter(c => columnIds.includes(c.column_id));
         return { success: true, data: cards };
     },
-    createCard: async (card: any) => {
-        const newCard = {
+    createCard: async (card: Omit<MockCard, 'created_at' | 'updated_at'>) => {
+        const newCard: MockCard = {
             ...card,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -178,7 +178,7 @@ export const mockApi = {
         mockCards.push(newCard);
         return { success: true, data: newCard };
     },
-    updateCard: async (card: any) => {
+    updateCard: async (card: MockCard) => {
         const index = mockCards.findIndex(c => c.id === card.id);
         if (index >= 0) {
             mockCards[index] = { ...card, updated_at: new Date().toISOString() };
@@ -189,7 +189,7 @@ export const mockApi = {
         mockCards = mockCards.filter(c => c.id !== id);
         return { success: true };
     },
-    updateCardsPositions: async (cards: any[]) => {
+    updateCardsPositions: async (cards: Array<{ id: string; column_id: string; position: number }>) => {
         for (const card of cards) {
             const index = mockCards.findIndex(c => c.id === card.id);
             if (index >= 0) {
