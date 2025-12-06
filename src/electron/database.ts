@@ -1,74 +1,87 @@
-import { app } from 'electron';
-import Database from 'better-sqlite3';
 import path from 'path';
 import { getDatabasePath } from './pathResolver.js';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
 
-export function initDatabase() {
+export interface Board {
+    id: string;
+    name: string;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Column {
+    id: string;
+    board_id: string;
+    name: string;
+    position: number;
+    created_at: string;
+}
+
+export interface Card {
+    id: string;
+    column_id: string;
+    title: string;
+    description: string | null;
+    notes: string | null;
+    due_date: string | null;
+    position: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Label {
+    id: string;
+    name: string;
+    color: string;
+    board_id: string;
+}
+
+export interface CardLabel {
+    card_id: string;
+    label_id: string;
+}
+
+export interface Setting {
+    key: string;
+    value: string;
+}
+
+export interface DatabaseSchema {
+    boards: Board[];
+    columns: Column[];
+    cards: Card[];
+    labels: Label[];
+    card_labels: CardLabel[];
+    settings: Setting[];
+}
+
+export type LowDatabase = Low<DatabaseSchema>;
+
+export async function initDatabase(): Promise<LowDatabase> {
     const dbPath = getDatabasePath();
     console.log('Database path:', dbPath);
 
-    const db = new Database(dbPath);
+    // Use JSON file for storage
+    const adapter = new JSONFile<DatabaseSchema>(dbPath);
+    const db = new Low<DatabaseSchema>(adapter, {
+        boards: [],
+        columns: [],
+        cards: [],
+        labels: [],
+        card_labels: [],
+        settings: []
+    });
 
-    // Enable WAL mode for better performance and concurrent read access
-    db.pragma('journal_mode = WAL');
-
-    // Create tables
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS boards (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-        );
-
-        CREATE TABLE IF NOT EXISTS columns (
-        id TEXT PRIMARY KEY,
-        board_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        position INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS cards (
-        id TEXT PRIMARY KEY,
-        column_id TEXT NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT,
-        notes TEXT,
-        due_date TEXT,
-        position INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (column_id) REFERENCES columns(id) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS labels (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        board_id TEXT NOT NULL,
-        FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS card_labels (
-        card_id TEXT NOT NULL,
-        label_id TEXT NOT NULL,
-        PRIMARY KEY (card_id, label_id),
-        FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-        FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-        );
-    `);
+    // Read the database
+    await db.read();
 
     // Initialize default settings if not exists
-    const stmt = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-    stmt.run('darkMode', 'false');
+    if (!db.data.settings.find(s => s.key === 'darkMode')) {
+        db.data.settings.push({ key: 'darkMode', value: 'false' });
+        await db.write();
+    }
 
     console.log('Database initialized successfully');
 
