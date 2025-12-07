@@ -73,21 +73,21 @@ export default function Home() {
 
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {isCreating ? (
-                            <div className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 bg-white dark:bg-gray-800'>
+                            <div className='rounded-lg shadow-md ring-1 ring-gray-700 p-4'>
                                 <h4 className='text-xl font-bold mb-4'>Create New Board</h4>
                                 <input
                                     type='text'
                                     placeholder='Board Name'
                                     value={newBoardName}
                                     onChange={(e) => setNewBoardName(e.target.value)}
-                                    className='w-full p-2 mb-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 mb-2 border border-gray-300 rounded'
                                     autoFocus
                                 />
                                 <textarea
                                     placeholder='Description (optional)'
                                     value={newBoardDescription}
                                     onChange={(e) => setNewBoardDescription(e.target.value)}
-                                    className='w-full p-2 mb-4 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 mb-4 border border-gray-300 rounded'
                                     rows={3}
                                 />
                                 <div className='flex gap-2'>
@@ -103,7 +103,7 @@ export default function Home() {
                                             setNewBoardName("");
                                             setNewBoardDescription("");
                                         }}
-                                        className='flex-1 bg-gray-300 dark:bg-gray-600 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                                        className='flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 '
                                     >
                                         Cancel
                                     </button>
@@ -127,7 +127,7 @@ export default function Home() {
                             >
                                 <div className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 hover:shadow-lg transition-shadow duration-300'>
                                     <h4 className='text-xl font-bold mb-2'>{board.name}</h4>
-                                    <p className='text-gray-600 dark:text-gray-400 mb-4'>{board.description || 'No description'}</p>
+                                    <p className='text-gray-600 mb-4'>{board.description || 'No description'}</p>
                                     <p className='text-sm text-gray-500'>Last edited: {new Date(board.updated_at).toLocaleDateString()}</p>
                                 </div>
                             </Link>

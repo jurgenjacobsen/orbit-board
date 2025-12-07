@@ -246,7 +246,7 @@ export default function BoardPage() {
                 <div className='flex items-center gap-4'>
                     <button
                         onClick={() => navigate('/')}
-                        className='p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800'
+                        className='p-2 rounded-lg hover:bg-gray-100'
                     >
                         <ArrowLeft className='h-6 w-6' />
                     </button>
@@ -263,8 +263,8 @@ export default function BoardPage() {
                     {columns.map((column) => (
                         <div
                             key={column.id}
-                            className={`flex-shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col ${
-                                draggedOverColumn === column.id ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-800'
+                            className={`shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col ${
+                                draggedOverColumn === column.id ? 'bg-blue-100 ' : 'bg-gray-50'
                             }`}
                             onDragOver={(e) => handleDragOver(e, column.id)}
                             onDrop={(e) => handleDrop(e, column.id)}
@@ -273,7 +273,7 @@ export default function BoardPage() {
                                 <h3 className='text-lg font-semibold'>{column.name}</h3>
                                 <button
                                     onClick={() => deleteColumn(column.id)}
-                                    className='p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600'
+                                    className='p-1 rounded hover:bg-red-100 text-red-600'
                                     title='Delete column'
                                 >
                                     <Trash2 className='h-4 w-4' />
@@ -285,21 +285,21 @@ export default function BoardPage() {
                                         key={card.id}
                                         draggable
                                         onDragStart={() => handleDragStart(card)}
-                                        className='bg-white dark:bg-gray-700 p-3 rounded shadow cursor-move hover:shadow-md transition-shadow'
+                                        className='bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow'
                                     >
                                         <div className='flex items-start justify-between'>
                                             <h4 className='font-medium flex-1'>{card.title}</h4>
                                             <div className='flex gap-1'>
                                                 <button
                                                     onClick={() => setEditingCard(card)}
-                                                    className='p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600'
+                                                    className='p-1 rounded hover:bg-gray-100'
                                                     title='Edit card'
                                                 >
                                                     <Edit2 className='h-3 w-3' />
                                                 </button>
                                                 <button
                                                     onClick={() => deleteCard(card.id, column.id)}
-                                                    className='p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600'
+                                                    className='p-1 rounded hover:bg-red-100 text-red-600'
                                                     title='Delete card'
                                                 >
                                                     <Trash2 className='h-3 w-3' />
@@ -307,7 +307,7 @@ export default function BoardPage() {
                                             </div>
                                         </div>
                                         {card.description && (
-                                            <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>{card.description}</p>
+                                            <p className='text-sm text-gray-600 mt-1'>{card.description}</p>
                                         )}
                                         {card.due_date && (
                                             <p className='text-xs text-gray-500 mt-2'>Due: {new Date(card.due_date).toLocaleDateString()}</p>
@@ -322,7 +322,7 @@ export default function BoardPage() {
                                         placeholder='Card title'
                                         value={newCardTitle}
                                         onChange={(e) => setNewCardTitle(e.target.value)}
-                                        className='w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                        className='w-full p-2 border border-gray-300 rounded'
                                         autoFocus
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
@@ -342,7 +342,7 @@ export default function BoardPage() {
                                                 setIsAddingCard(null);
                                                 setNewCardTitle("");
                                             }}
-                                            className='flex-1 bg-gray-300 dark:bg-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-700'
+                                            className='flex-1 bg-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-400'
                                         >
                                             Cancel
                                         </button>
@@ -351,7 +351,7 @@ export default function BoardPage() {
                             ) : (
                                 <button
                                     onClick={() => setIsAddingCard(column.id)}
-                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600'
                                 >
                                     <Plus className='h-4 w-4' />
                                     <span>Add card</span>
@@ -360,13 +360,13 @@ export default function BoardPage() {
                         </div>
                     ))}
                     {isAddingColumn ? (
-                        <div className='flex-shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 bg-gray-50 dark:bg-gray-800'>
+                        <div className='shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 bg-gray-50'>
                             <input
                                 type='text'
                                 placeholder='Column name'
                                 value={newColumnName}
                                 onChange={(e) => setNewColumnName(e.target.value)}
-                                className='w-full p-2 mb-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                className='w-full p-2 mb-2 border border-gray-300 rounded'
                                 autoFocus
                                 onKeyPress={(e) => {
                                     if (e.key === 'Enter') {
@@ -386,7 +386,7 @@ export default function BoardPage() {
                                         setIsAddingColumn(false);
                                         setNewColumnName("");
                                     }}
-                                    className='flex-1 bg-gray-300 dark:bg-gray-600 px-3 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                                    className='flex-1 bg-gray-300 px-3 py-2 rounded hover:bg-gray-400 '
                                 >
                                     Cancel
                                 </button>
@@ -395,7 +395,7 @@ export default function BoardPage() {
                     ) : (
                         <button
                             onClick={() => setIsAddingColumn(true)}
-                            className='flex-shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-2'
+                            className='shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-center gap-2'
                         >
                             <Plus className='h-5 w-5' />
                             <span>Add column</span>
@@ -407,7 +407,7 @@ export default function BoardPage() {
             {/* Card Edit Modal */}
             {editingCard && (
                 <div className='fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50'>
-                    <div className='bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl'>
+                    <div className='bg-white rounded-lg p-6 w-full max-w-2xl'>
                         <h3 className='text-2xl font-semibold mb-4'>Edit Card</h3>
                         <div className='space-y-4'>
                             <div>
@@ -416,7 +416,7 @@ export default function BoardPage() {
                                     type='text'
                                     value={editingCard.title}
                                     onChange={(e) => setEditingCard({ ...editingCard, title: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 border border-gray-300 rounded '
                                 />
                             </div>
                             <div>
@@ -424,7 +424,7 @@ export default function BoardPage() {
                                 <textarea
                                     value={editingCard.description || ""}
                                     onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 border border-gray-300 rounded '
                                     rows={3}
                                 />
                             </div>
@@ -433,7 +433,7 @@ export default function BoardPage() {
                                 <textarea
                                     value={editingCard.notes || ""}
                                     onChange={(e) => setEditingCard({ ...editingCard, notes: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 border border-gray-300 rounded '
                                     rows={3}
                                 />
                             </div>
@@ -443,7 +443,7 @@ export default function BoardPage() {
                                     type='date'
                                     value={editingCard.due_date || ""}
                                     onChange={(e) => setEditingCard({ ...editingCard, due_date: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600'
+                                    className='w-full p-2 border border-gray-300 rounded '
                                 />
                             </div>
                         </div>
@@ -456,7 +456,7 @@ export default function BoardPage() {
                             </button>
                             <button
                                 onClick={() => setEditingCard(null)}
-                                className='flex-1 bg-gray-300 dark:bg-gray-600 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                                className='flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400'
                             >
                                 Cancel
                             </button>
