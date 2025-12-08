@@ -59,6 +59,9 @@ export default function BoardPage() {
     const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
     const [editingCard, setEditingCard] = useState<Card | null>(null);
 
+    // Column Drag State
+    const [draggedColumn, setDraggedColumn] = useState<Column | null>(null);
+
     useEffect(() => {
         if (boardId) {
             loadBoard();
@@ -146,6 +149,20 @@ export default function BoardPage() {
         }
     };
 
+    const deleteBoard = async (boardId: string) => {
+        if (!confirm("Are you sure you want to delete this board? All columns and cards in it will be deleted.")) return;
+        try {
+            const api = getApi();
+            const result = await api.deleteBoard(boardId);
+            if (result.success) {
+                navigate('/');
+            }
+        } catch (error) {
+            console.error("Failed to delete board:", error);
+        }
+    };
+
+    // --- Update Column Name Logic ---
     const startEditingColumn = (column: Column) => {
         setEditingColumnId(column.id);
         setTempColumnName(column.name);
@@ -154,12 +171,10 @@ export default function BoardPage() {
     const updateColumnName = async (columnId: string) => {
         const trimmedName = tempColumnName.trim();
         if (!trimmedName) {
-            // If empty, just cancel edit
             setEditingColumnId(null);
             return;
         }
 
-        // If name hasn't changed, just exit edit mode
         const originalColumn = columns.find(c => c.id === columnId);
         if (originalColumn && originalColumn.name === trimmedName) {
             setEditingColumnId(null);
@@ -168,8 +183,6 @@ export default function BoardPage() {
 
         try {
             const api = getApi();
-            // Assuming the API has an updateColumn method similar to updateCard/createColumn
-            // If strictly following the previous pattern, we might need to send the whole object
             const result = await api.updateColumn({ ...originalColumn, id: columnId, name: trimmedName });
 
             if (result.success) {
@@ -179,6 +192,61 @@ export default function BoardPage() {
             console.error("Failed to update column:", error);
         }
         setEditingColumnId(null);
+    };
+
+    // --- Column Drag and Drop Logic ---
+    const handleColumnDragStart = (e: React.DragEvent, column: Column) => {
+        // Prevent card drag handler from firing if we grabbed the column
+        e.stopPropagation();
+        setDraggedColumn(column);
+    };
+
+    const handleColumnDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleColumnDrop = async (e: React.DragEvent, targetColumnId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Ensure we are dragging a column, not a card
+        if (!draggedColumn) return;
+
+        // If dropped on itself, do nothing
+        if (draggedColumn.id === targetColumnId) {
+            setDraggedColumn(null);
+            return;
+        }
+
+        const currentColumns = [...columns];
+        const sourceIndex = currentColumns.findIndex(c => c.id === draggedColumn.id);
+        const targetIndex = currentColumns.findIndex(c => c.id === targetColumnId);
+
+        // Reorder array locally
+        const [removed] = currentColumns.splice(sourceIndex, 1);
+        currentColumns.splice(targetIndex, 0, removed);
+
+        // Optimistically update state
+        setColumns(currentColumns);
+
+        // Update positions in API
+        try {
+            const api = getApi();
+            const updates = currentColumns.map((col, index) => {
+                // Only update if position actually changed
+                if (col.position !== index) {
+                    return api.updateColumn({ ...col, position: index });
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(updates);
+        } catch (error) {
+            console.error("Failed to reorder columns:", error);
+            // Revert on error (optional, but good practice)
+            loadColumns();
+        }
+
+        setDraggedColumn(null);
     };
 
     const createCard = async (columnId: string) => {
@@ -235,17 +303,34 @@ export default function BoardPage() {
         }
     };
 
-    const handleDragStart = (card: Card) => {
+    const handleDragStart = (e: React.DragEvent, card: Card) => {
+        // Prevent column drag start from firing
+        e.stopPropagation();
         setDraggedCard(card);
     };
 
     const handleDragOver = (e: React.DragEvent, columnId: string) => {
         e.preventDefault();
-        setDraggedOverColumn(columnId);
+        e.stopPropagation();
+        // Only allow card drop visuals if we are actually dragging a card
+        if(draggedCard) {
+            setDraggedOverColumn(columnId);
+        }
     };
 
     const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
         e.preventDefault();
+        e.stopPropagation();
+
+        // If we are dragging a column, this is the wrong handler (though stopPropagation in columnDrop handles most cases)
+        if (draggedColumn) {
+             // Pass to column drop handler logic if needed,
+             // but usually better to separate the drop zones or use conditional logic here.
+             // Since the drop zone is the column div, we can reuse this event or split them.
+             // For clarity, we will handle column drop inside the column wrapper onDrop.
+             return;
+        }
+
         if (!draggedCard) return;
 
         // If dropped in the same column, do nothing
@@ -286,33 +371,64 @@ export default function BoardPage() {
     return (
         <div className='h-screen flex flex-col'>
             <header className='pt-4 border-b border-gray-300 mx-6 pb-4'>
-                <div className='flex items-center gap-4'>
-                    <button
-                        onClick={() => navigate('/')}
-                        className='p-2 rounded-lg hover:bg-gray-100'
-                    >
-                        <ArrowLeft className='h-6 w-6' />
-                    </button>
-                    <div>
-                        <h2 className='text-3xl font-semibold'>{board.name}</h2>
-                        {board.description && (
-                            <p className='text-gray-600 dark:text-gray-400 mt-1'>{board.description}</p>
-                        )}
+                <div className="flex items-center justify-between">
+                    <div className='flex items-center gap-4'>
+                        <button
+                            onClick={() => navigate('/')}
+                            className='p-2 rounded-lg bg-gray-100 hover:bg-gray-200 duration-300 transition-colors cursor-pointer'
+                        >
+                            <ArrowLeft className='h-6 w-6' />
+                        </button>
+                        <div>
+                            <h2 className='text-3xl font-semibold'>{board.name}</h2>
+                            {board.description && (
+                                <p className='text-gray-600 dark:text-gray-400 mt-1'>{board.description}</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => (board.id)}
+                            className='p-2 rounded-lg bg-gray-100  duration-300 transition-colors cursor-pointer hover:bg-gray-200'
+                        >
+                            <Edit2 className='h-6 w-6' />
+                        </button>
+                        <button
+                            onClick={() => deleteBoard(board.id)}
+                            className='p-2 rounded-lg bg-gray-100  duration-300 transition-colors cursor-pointer hover:bg-red-500/75'
+                        >
+                            <Trash2 className='h-6 w-6' />
+                        </button>
                     </div>
                 </div>
             </header>
             <main className='flex-1 overflow-x-auto p-6'>
-                <div className='flex gap-4 h-full'>
+                <div className='flex gap-4 h-[calc(100%-1rem)]'>
                     {columns.map((column) => (
                         <div
                             key={column.id}
-                            className={`shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col ${
-                                draggedOverColumn === column.id ? 'bg-blue-100 ' : 'bg-gray-50'
-                            }`}
-                            onDragOver={(e) => handleDragOver(e, column.id)}
-                            onDrop={(e) => handleDrop(e, column.id)}
+                            draggable
+                            onDragStart={(e) => handleColumnDragStart(e, column)}
+                            onDragOver={(e) => {
+                                // Decide whether to show card drag over or column drag over effects
+                                if (draggedCard) {
+                                    handleDragOver(e, column.id);
+                                } else if (draggedColumn) {
+                                    handleColumnDragOver(e);
+                                }
+                            }}
+                            onDrop={(e) => {
+                                if (draggedCard) {
+                                    handleDrop(e, column.id);
+                                } else if (draggedColumn) {
+                                    handleColumnDrop(e, column.id);
+                                }
+                            }}
+                            className={`shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col transition-opacity duration-200 ${
+                                draggedOverColumn === column.id && draggedCard ? 'bg-blue-100 ' : 'bg-gray-50'
+                            } ${draggedColumn?.id === column.id ? 'opacity-50 border-dashed border border-indigo-600 ' : ''}`}
                         >
-                            <div className='flex items-center justify-between mb-4 min-h-8'>
+                            <div className='flex items-center justify-between mb-4 min-h-8 cursor-grab active:cursor-grabbing'>
                                 {editingColumnId === column.id ? (
                                     // --- Edit Mode ---
                                     <div className="flex items-center gap-2 w-full">
@@ -327,6 +443,7 @@ export default function BoardPage() {
                                                 if (e.key === 'Escape') setEditingColumnId(null);
                                             }}
                                             className="flex-1 p-1 text-lg font-semibold border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
                                         />
                                         <button
                                             onClick={() => updateColumnName(column.id)}
@@ -340,20 +457,14 @@ export default function BoardPage() {
                                     // --- Display Mode ---
                                     <>
                                         <h3
-                                            className='text-lg font-semibold cursor-pointer hover:bg-gray-200 px-1 rounded truncate flex-1 select-none'
+                                            className='text-lg font-semibold hover:bg-gray-200 px-1 rounded truncate flex-1 select-none cursor-text'
+                                            onClick={() => startEditingColumn(column)}
                                             onDoubleClick={() => startEditingColumn(column)}
-                                            title="Double-click to edit"
+                                            title="Double-click to edit, Drag to reorder"
                                         >
                                             {column.name}
                                         </h3>
                                         <div className="flex gap-1">
-                                            <button
-                                                onClick={() => startEditingColumn(column)}
-                                                className='p-1 rounded hover:bg-gray-200 text-gray-600'
-                                                title='Edit column name'
-                                            >
-                                                <Edit2 className='h-4 w-4' />
-                                            </button>
                                             <button
                                                 onClick={() => deleteColumn(column.id)}
                                                 className='p-1 rounded hover:bg-red-100 text-red-600'
@@ -370,7 +481,7 @@ export default function BoardPage() {
                                     <div
                                         key={card.id}
                                         draggable
-                                        onDragStart={() => handleDragStart(card)}
+                                        onDragStart={(e) => handleDragStart(e, card)}
                                         className='bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow'
                                     >
                                         <div className='flex items-start justify-between'>
@@ -481,7 +592,7 @@ export default function BoardPage() {
                     ) : (
                         <button
                             onClick={() => setIsAddingColumn(true)}
-                            className='shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-center gap-2'
+                            className='shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 hover:bg-gray-100 flex items-center justify-center gap-2 cursor-pointer transition-colors duration-300'
                         >
                             <Plus className='h-5 w-5' />
                             <span>Add column</span>

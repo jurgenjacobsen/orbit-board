@@ -23,11 +23,11 @@ function App() {
 
     return (
         <Router>
-            <div className={`min-h-screen bg-white text-gray-900`}>
+            <div className={` text-gray-900`}>
                 <aside className={
-                    `fixed top-0 left-0 h-screen ${isExpanded ? 'w-72' : 'w-24'} transition-all duration-300`
+                    `fixed top-0 left-0 ${isExpanded ? 'w-72' : 'w-24'} transition-all duration-300`
                 }>
-                    <div className='m-4 h-[calc(100vh-2rem)] rounded-lg overflow-hidden flex flex-col shadow-lg ring-1 ring-gray-700'>
+                    <div className='m-4 h-[calc(100vh-2rem)] rounded-lg overflow-hidden flex flex-col shadow-lg ring-1 ring-gray-700 bg-white'>
                         {/* Header */}
                         <div className={`flex items-center ${isExpanded ? 'px-4 justify-between' : 'justify-center'} my-2`}>
                             <h1 className={`text-2xl font-bold ${isExpanded ? 'block' : 'hidden'} transition-all duration-300 whitespace-nowrap`}>
