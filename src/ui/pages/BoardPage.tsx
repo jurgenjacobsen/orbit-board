@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Edit2, Save } from "lucide-react";
 import { getApi } from "../utils/mockApi";
 
 declare global {
@@ -43,8 +43,16 @@ export default function BoardPage() {
     const [board, setBoard] = useState<Board | null>(null);
     const [columns, setColumns] = useState<Column[]>([]);
     const [cards, setCards] = useState<{ [columnId: string]: Card[] }>({});
+
+    // Column Creation State
     const [isAddingColumn, setIsAddingColumn] = useState(false);
     const [newColumnName, setNewColumnName] = useState("");
+
+    // Column Editing State
+    const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+    const [tempColumnName, setTempColumnName] = useState("");
+
+    // Card Creation/Editing/Drag State
     const [isAddingCard, setIsAddingCard] = useState<string | null>(null);
     const [newCardTitle, setNewCardTitle] = useState("");
     const [draggedCard, setDraggedCard] = useState<Card | null>(null);
@@ -136,6 +144,41 @@ export default function BoardPage() {
         } catch (error) {
             console.error("Failed to delete column:", error);
         }
+    };
+
+    const startEditingColumn = (column: Column) => {
+        setEditingColumnId(column.id);
+        setTempColumnName(column.name);
+    };
+
+    const updateColumnName = async (columnId: string) => {
+        const trimmedName = tempColumnName.trim();
+        if (!trimmedName) {
+            // If empty, just cancel edit
+            setEditingColumnId(null);
+            return;
+        }
+
+        // If name hasn't changed, just exit edit mode
+        const originalColumn = columns.find(c => c.id === columnId);
+        if (originalColumn && originalColumn.name === trimmedName) {
+            setEditingColumnId(null);
+            return;
+        }
+
+        try {
+            const api = getApi();
+            // Assuming the API has an updateColumn method similar to updateCard/createColumn
+            // If strictly following the previous pattern, we might need to send the whole object
+            const result = await api.updateColumn({ ...originalColumn, id: columnId, name: trimmedName });
+
+            if (result.success) {
+                await loadColumns();
+            }
+        } catch (error) {
+            console.error("Failed to update column:", error);
+        }
+        setEditingColumnId(null);
     };
 
     const createCard = async (columnId: string) => {
@@ -269,15 +312,58 @@ export default function BoardPage() {
                             onDragOver={(e) => handleDragOver(e, column.id)}
                             onDrop={(e) => handleDrop(e, column.id)}
                         >
-                            <div className='flex items-center justify-between mb-4'>
-                                <h3 className='text-lg font-semibold'>{column.name}</h3>
-                                <button
-                                    onClick={() => deleteColumn(column.id)}
-                                    className='p-1 rounded hover:bg-red-100 text-red-600'
-                                    title='Delete column'
-                                >
-                                    <Trash2 className='h-4 w-4' />
-                                </button>
+                            <div className='flex items-center justify-between mb-4 min-h-8'>
+                                {editingColumnId === column.id ? (
+                                    // --- Edit Mode ---
+                                    <div className="flex items-center gap-2 w-full">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={tempColumnName}
+                                            onChange={(e) => setTempColumnName(e.target.value)}
+                                            onBlur={() => updateColumnName(column.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') updateColumnName(column.id);
+                                                if (e.key === 'Escape') setEditingColumnId(null);
+                                            }}
+                                            className="flex-1 p-1 text-lg font-semibold border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        />
+                                        <button
+                                            onClick={() => updateColumnName(column.id)}
+                                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                            title="Save name"
+                                        >
+                                            <Save className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // --- Display Mode ---
+                                    <>
+                                        <h3
+                                            className='text-lg font-semibold cursor-pointer hover:bg-gray-200 px-1 rounded truncate flex-1 select-none'
+                                            onDoubleClick={() => startEditingColumn(column)}
+                                            title="Double-click to edit"
+                                        >
+                                            {column.name}
+                                        </h3>
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => startEditingColumn(column)}
+                                                className='p-1 rounded hover:bg-gray-200 text-gray-600'
+                                                title='Edit column name'
+                                            >
+                                                <Edit2 className='h-4 w-4' />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteColumn(column.id)}
+                                                className='p-1 rounded hover:bg-red-100 text-red-600'
+                                                title='Delete column'
+                                            >
+                                                <Trash2 className='h-4 w-4' />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <div className='flex-1 overflow-y-auto space-y-2 mb-2'>
                                 {(cards[column.id] || []).map((card) => (
