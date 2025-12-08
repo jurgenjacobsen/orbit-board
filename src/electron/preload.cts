@@ -42,4 +42,4 @@ contextBridge.exposeInMainWorld('api', {
   // Export/Import
   exportData: () => ipcRenderer.invoke('db:exportData'),
   importData: () => ipcRenderer.invoke('db:importData')
-} satisfies Window['electronAPI']);
+} satisfies Window['api']);

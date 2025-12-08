@@ -43,7 +43,7 @@ type EventPayloadMapping = {
 };
 
 interface Window {
-    electronAPI: {
+    api: {
         // Board operations
         getBoards: () => any,
         getBoard: (event: any, id: string) => any,
