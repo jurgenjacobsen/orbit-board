@@ -557,4 +557,21 @@ app.on('ready', async () => {
             return { success: false, error: error.message };
         }
     });
+
+    // Reset Application Data
+    ipcMain.handle('db:resetApplication', async () => {
+        try {
+            await db.read();
+            db.data.boards = [];
+            db.data.columns = [];
+            db.data.cards = [];
+            db.data.labels = [];
+            db.data.card_labels = [];
+            db.data.settings = [];
+            await db.write();
+            return { success: true };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    });
 });

@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('api', {
   removeLabelFromCard: (cardId, labelId) => ipcRenderer.invoke('db:removeLabelFromCard', { cardId, labelId }),
 
   // Settings operations
+  resetApplication: () => ipcRenderer.invoke('db:resetApplication'),
   getSetting: (key) => ipcRenderer.invoke('db:getSetting', key),
   // @ts-ignore
   setSetting: (key: any, value: any) => ipcRenderer.invoke('db:setSetting', { key, value }),
