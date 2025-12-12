@@ -1,4 +1,3 @@
-import path from 'path';
 import { getDatabasePath } from './pathResolver.js';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
