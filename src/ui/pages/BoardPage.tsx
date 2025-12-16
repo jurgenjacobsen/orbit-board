@@ -565,7 +565,7 @@ export default function BoardPage() {
                                 onChange={(e) => setNewColumnName(e.target.value)}
                                 className='w-full p-2 mb-2 border border-gray-300 rounded'
                                 autoFocus
-                                onKeyPress={(e) => {
+                                onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         createColumn();
                                     }

@@ -63,7 +63,7 @@ export default function Home() {
     };
 
     return (
-        <div>
+        <>
             <header className='pt-4 border-b border-gray-300 mx-6'>
                 <h2 className='text-3xl font-semibold'>Home</h2>
             </header>
@@ -112,7 +112,7 @@ export default function Home() {
                         ) : (
                             <div
                                 onClick={() => setIsCreating(true)}
-                                className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 hover:shadow-lg transition-shadow duration-300 bg-green-300/25 flex flex-col items-center justify-center cursor-pointer'
+                                className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 hover:shadow-lg transition-all duration-300 bg-green-300/25 hover:bg-green-300/50  flex flex-col items-center justify-center cursor-pointer'
                             >
                                 <Plus className='h-8 w-8'/>
                                 <h4 className='text-xl font-bold'>Create New Board</h4>
@@ -135,6 +135,6 @@ export default function Home() {
                     </div>
                 </section>
             </main>
-        </div>
+        </>
     );
 }
