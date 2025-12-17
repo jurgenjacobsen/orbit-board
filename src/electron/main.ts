@@ -66,6 +66,8 @@ app.on('ready', async () => {
         title: 'Orbit Board',
         icon: path.join(app.getAppPath(), '/src/assets/icon.png'),
         autoHideMenuBar: true,
+        minHeight: 480,
+        minWidth: 720,
         webPreferences: {
             preload: getPreloadPath(),
         }
