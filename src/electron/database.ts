@@ -1,4 +1,4 @@
-import { getDatabasePath } from './pathResolver.js';
+import { getDatabasePath } from './utils/pathResolver.js';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 
@@ -54,6 +54,10 @@ export interface DatabaseSchema {
     labels: Label[];
     card_labels: CardLabel[];
     settings: Setting[];
+    user: {
+        level: number;
+        xp: number;
+    }
 }
 
 export type LowDatabase = Low<DatabaseSchema>;
@@ -70,7 +74,11 @@ export async function initDatabase(): Promise<LowDatabase> {
         cards: [],
         labels: [],
         card_labels: [],
-        settings: []
+        settings: [],
+        user: {
+            level: 1,
+            xp: 0
+        }
     });
 
     // Read the database
