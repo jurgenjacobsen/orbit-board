@@ -63,7 +63,7 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
 app.on('ready', async () => {
     const db = await initDatabase();
 
-    const level = new LevelSystem(db);
+    const levels = new LevelSystem(db);
 
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
@@ -585,6 +585,32 @@ app.on('ready', async () => {
             return { success: true };
         } catch (error: any) {
             return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('lvl:completeTask', async () => {
+        try {
+            const response = await levels.completeTask();
+            return {
+                success: true,
+                data: response
+            }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    });
+
+    ipcMain.handle('lvl:getCurrent', async () => {
+        try {
+            let level = await levels.getCurrent();
+            let progress = await levels.getProgress();
+
+            return {
+                success: true,
+                data: { ...level, progress }
+            }
+        } catch(error: any) {
+            return { success: false, error: error.message }
         }
     });
 });

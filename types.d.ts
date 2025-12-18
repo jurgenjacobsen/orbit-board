@@ -36,10 +36,15 @@ type EventPayloadMapping = {
     // Settings events
     'db:getSetting': any,
     'db:setSetting': { success: boolean; error?: undefined; } | { success: boolean; error: any; },
+    'db:resetApplication': any
 
     // Export/Import events
     'db:exportData': any,
     'db:importData': void
+
+    // Level System
+    'lvl:getCurrent': any,
+    'lvl:completeTask': any
 };
 
 interface Window {
@@ -75,11 +80,16 @@ interface Window {
         addLabelToCard: (cardId, labelId) => any,
         removeLabelFromCard: (cardId, labelId) => any,
         // Settings operations
+        resetApplication: () => void
         getSetting: (key) => any,
         setSetting: () => any,
 
         // Export/Import
         exportData: () => any,
-        importData: () => any
+        importData: () => any,
+
+        // Level System
+        completeTask: () => void,
+        getCurrent: () => void
     }
 }
