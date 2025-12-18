@@ -1,6 +1,6 @@
 import { app, BrowserWindow,dialog,ipcMain,Notification } from 'electron';
-import { generateId, handleCloseEvents, isDev } from './util.js';
-import { getPreloadPath } from './pathResolver.js';
+import { generateId, handleCloseEvents, isDev } from './utils/util.js';
+import { getPreloadPath } from './utils/pathResolver.js';
 import { createTray } from './tray.js';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
@@ -8,6 +8,7 @@ import path from 'path';
 import type { LowDatabase } from './database.js';
 import { initDatabase } from './database.js';
 import fs from 'fs';
+import { LevelSystem } from './utils/exp.js'
 
 const notificationTimeouts: NodeJS.Timeout[] = [];
 
@@ -62,10 +63,14 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
 app.on('ready', async () => {
     const db = await initDatabase();
 
+    const level = new LevelSystem(db);
+
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
         icon: path.join(app.getAppPath(), '/src/assets/icon.png'),
         autoHideMenuBar: true,
+        minHeight: 480,
+        minWidth: 720,
         webPreferences: {
             preload: getPreloadPath(),
         }
@@ -501,7 +506,8 @@ app.on('ready', async () => {
                 cards: db.data.cards,
                 labels: db.data.labels,
                 cardLabels: db.data.card_labels,
-                settings: db.data.settings
+                settings: db.data.settings,
+                user: db.data.user
             };
 
             const { filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -548,6 +554,9 @@ app.on('ready', async () => {
                 if (importData.settings) {
                     db.data.settings = importData.settings;
                 }
+                if (importData.user) {
+                    db.data.user = importData.user;
+                }
 
                 await db.write();
                 return { success: true, data: 'Import successful' };
@@ -568,6 +577,10 @@ app.on('ready', async () => {
             db.data.labels = [];
             db.data.card_labels = [];
             db.data.settings = [];
+            db.data.user = {
+                level: 1,
+                xp: 0
+            }
             await db.write();
             return { success: true };
         } catch (error: any) {

@@ -1,5 +1,5 @@
 import { expect, Mock, test, vi } from 'vitest';
-import { createTray } from './tray.js';
+import { createTray } from '../tray.js';
 import { app, BrowserWindow, Menu } from 'electron';
 
 vi.mock('electron', () => {
