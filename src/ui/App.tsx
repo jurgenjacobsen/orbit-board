@@ -5,6 +5,7 @@ import { Home, Settings, User, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage.tsx';
 import BoardPage from './pages/BoardPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import ProfilePage from './pages/ProfilePage.tsx';
 
 
 function App() {
@@ -73,6 +74,7 @@ function App() {
                     <Routes>
                         <Route path='/' element={<HomePage />} />
                         <Route path='/board/:boardId' element={<BoardPage />} />
+                        <Route path='/profile' element={<ProfilePage/>}/>
                         <Route path='/settings' element={<SettingsPage />} />
                     </Routes>
                 </main>

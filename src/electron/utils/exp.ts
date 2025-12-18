@@ -63,10 +63,10 @@ class LevelSystem {
         if (amount <= 0) throw new Error("XP amount must be positive");
 
         // 1. Refresh data
-        await this.db.read();
+        await this.getCurrent()
 
-        let currentLevel = this.db.data.user.level;
-        let currentXp = this.db.data.user.xp + amount;
+        let currentLevel = this._level;
+        let currentXp = this._currentXp + amount;
         let leveledUp = false;
 
         // 2. Calculate new state in memory (Loop)

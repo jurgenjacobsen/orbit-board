@@ -42,5 +42,9 @@ contextBridge.exposeInMainWorld('api', {
 
   // Export/Import
   exportData: () => ipcRenderer.invoke('db:exportData'),
-  importData: () => ipcRenderer.invoke('db:importData')
+  importData: () => ipcRenderer.invoke('db:importData'),
+
+  // Levels
+  completeTask: () => ipcRenderer.invoke('lvl:completeTask'),
+  getCurrent: () => ipcRenderer.invoke('lvl:getCurrent')
 } satisfies Window['api']);
