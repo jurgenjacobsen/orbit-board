@@ -30,7 +30,7 @@ function App() {
                 }>
                     <div className='m-4 h-[calc(100vh-2rem)] rounded-lg overflow-hidden flex flex-col shadow-lg ring-1 ring-gray-700 bg-white'>
                         {/* Header */}
-                        <div className={`flex items-center ${isExpanded ? 'px-4 justify-between' : 'justify-center'} my-2`}>
+                        <div className={`flex items-center ${isExpanded ? 'pl-2 justify-between' : 'justify-center'} my-2`}>
                             <h1 className={`text-2xl font-bold ${isExpanded ? 'block' : 'hidden'} transition-all duration-300 whitespace-nowrap`}>
                                 Orbit Board
                             </h1>
@@ -44,7 +44,7 @@ function App() {
                         </div>
 
                         {/* Navigation Links */}
-                        <nav className='flex-1 mt-4 space-y-2'>
+                        <nav className='flex-1 mt-2 space-y-2'>
                             {navLinks.map(({ to, label, icon: Icon }) => (
                                 <Link
                                     key={to}

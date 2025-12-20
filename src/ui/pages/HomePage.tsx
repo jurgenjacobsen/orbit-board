@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getApi } from "../utils/mockApi";
 
@@ -17,11 +17,16 @@ interface Board {
     updated_at: string;
 }
 
+function wait(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export default function Home() {
     const [boards, setBoards] = useState<Board[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newBoardName, setNewBoardName] = useState("");
     const [newBoardDescription, setNewBoardDescription] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadBoards();
@@ -56,6 +61,8 @@ export default function Home() {
                 setIsCreating(false);
                 setNewBoardName("");
                 setNewBoardDescription("");
+                await wait(300);
+                return navigate(`/board/${board.id}`);
             }
         } catch (error) {
             console.error("Failed to create board:", error);
@@ -93,7 +100,7 @@ export default function Home() {
                                 <div className='flex gap-2'>
                                     <button
                                         onClick={createBoard}
-                                        className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
+                                        className='flex-1 bg-indigo-800 text-white px-4 py-2 rounded hover:bg-indigo-700 cursor-pointer transition-colors duration-300'
                                     >
                                         Create
                                     </button>
