@@ -483,7 +483,7 @@ export default function BoardPage() {
                                         key={card.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, card)}
-                                        className='bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow'
+                                        className='p-2 rounded-lg border border-gray-700 cursor-move'
                                     >
                                         <div className='flex items-start justify-between'>
                                             <h4 className='font-medium flex-1'>{card.title}</h4>
@@ -549,7 +549,7 @@ export default function BoardPage() {
                             ) : (
                                 <button
                                     onClick={() => setIsAddingCard(column.id)}
-                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600'
+                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600 cursor-pointer'
                                 >
                                     <Plus className='h-4 w-4' />
                                     <span>Add card</span>
