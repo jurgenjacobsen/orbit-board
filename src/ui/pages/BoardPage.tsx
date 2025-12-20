@@ -436,13 +436,14 @@ export default function BoardPage() {
                                             autoFocus
                                             type="text"
                                             value={tempColumnName}
+                                            spellCheck={false}
                                             onChange={(e) => setTempColumnName(e.target.value)}
                                             onBlur={() => updateColumnName(column.id)}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') updateColumnName(column.id);
                                                 if (e.key === 'Escape') setEditingColumnId(null);
                                             }}
-                                            className="flex-1 p-1 text-lg font-semibold border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                            className="flex-1 px-1 text-lg font-semibold ring-1 ring-indigo-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                             onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
                                         />
                                         <button
@@ -457,7 +458,7 @@ export default function BoardPage() {
                                     // --- Display Mode ---
                                     <>
                                         <h3
-                                            className='text-lg font-semibold hover:bg-gray-200 px-1 rounded truncate flex-1 select-none cursor-text'
+                                            className='text-lg font-semibold hover:bg-gray-200 px-1 rounded-md truncate flex-1 select-none cursor-text'
                                             onClick={() => startEditingColumn(column)}
                                             onDoubleClick={() => startEditingColumn(column)}
                                             title="Double-click to edit, Drag to reorder"
@@ -482,7 +483,7 @@ export default function BoardPage() {
                                         key={card.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, card)}
-                                        className='bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow'
+                                        className='p-2 rounded-lg border border-gray-700 cursor-move'
                                     >
                                         <div className='flex items-start justify-between'>
                                             <h4 className='font-medium flex-1'>{card.title}</h4>
@@ -548,7 +549,7 @@ export default function BoardPage() {
                             ) : (
                                 <button
                                     onClick={() => setIsAddingCard(column.id)}
-                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600'
+                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600 cursor-pointer'
                                 >
                                     <Plus className='h-4 w-4' />
                                     <span>Add card</span>
