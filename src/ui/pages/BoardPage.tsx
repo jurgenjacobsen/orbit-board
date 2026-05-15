@@ -125,14 +125,14 @@ export default function BoardPage() {
         const columnCards = cards[columnId] || [];
         return columnCards.filter(card => {
             if (!includeArchived && card.archived) return false;
-            
+
             const query = filterQuery.toLowerCase();
-            const matchesQuery = !query || 
+            const matchesQuery = !query ||
                 card.title.toLowerCase().includes(query) ||
                 (card.description && card.description.toLowerCase().includes(query)) ||
                 (card.notes && card.notes.toLowerCase().includes(query));
 
-            const matchesLabels = filterLabels.length === 0 || 
+            const matchesLabels = filterLabels.length === 0 ||
                 filterLabels.every(labelId => (card as any).labelIds?.includes(labelId));
 
             let matchesDueSoon = true;
@@ -152,9 +152,9 @@ export default function BoardPage() {
     }, [cards, filterQuery, filterLabels, filterDueSoon, includeArchived]);
 
     const toggleFilterLabel = (labelId: string) => {
-        setFilterLabels(prev => 
-            prev.includes(labelId) 
-                ? prev.filter(id => id !== labelId) 
+        setFilterLabels(prev =>
+            prev.includes(labelId)
+                ? prev.filter(id => id !== labelId)
                 : [...prev, labelId]
         );
     };
@@ -529,10 +529,10 @@ export default function BoardPage() {
                                         key={label.id}
                                         onClick={() => toggleFilterLabel(label.id)}
                                         className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${filterLabels.includes(label.id) ? 'ring-2 ring-offset-1 ring-blue-400' : 'opacity-60 hover:opacity-100'}`}
-                                        style={{ 
-                                            backgroundColor: label.color + '20', 
+                                        style={{
+                                            backgroundColor: label.color + '20',
                                             borderColor: label.color,
-                                            color: label.color 
+                                            color: label.color
                                         }}
                                     >
                                         {label.name}
@@ -788,7 +788,7 @@ export default function BoardPage() {
                                     </div>
                                 </div>
                                 {previewDescription ? (
-                                    <div className='w-full p-2 border border-gray-300 rounded min-h-[5rem] bg-gray-50'><Markdown content={editingCard.description || "*No description*"} /></div>
+                                    <div className='w-full p-2 border border-gray-300 rounded min-h-20 bg-gray-50'><Markdown content={editingCard.description || "*No description*"} /></div>
                                 ) : (
                                     <textarea id='card-description' value={editingCard.description || ""} onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })} className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none' rows={3} placeholder='Add a description...' />
                                 )}
@@ -802,7 +802,7 @@ export default function BoardPage() {
                                     </div>
                                 </div>
                                 {previewNotes ? (
-                                    <div className='w-full p-2 border border-gray-300 rounded min-h-[5rem] bg-gray-50'><Markdown content={editingCard.notes || "*No notes*"} /></div>
+                                    <div className='w-full p-2 border border-gray-300 rounded min-h-20 bg-gray-50'><Markdown content={editingCard.notes || "*No notes*"} /></div>
                                 ) : (
                                     <textarea id='card-notes' value={editingCard.notes || ""} onChange={(e) => setEditingCard({ ...editingCard, notes: e.target.value })} className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none' rows={3} placeholder='Add some notes...' />
                                 )}

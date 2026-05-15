@@ -39,7 +39,7 @@
 - [ ] **Lazy Loading**: Load board data on demand rather than all at once to improve startup times.
 
 ## 6. Community & Open Source
-- [ ] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations).
+- [ ] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations). Also provide documentation and examples for plugin development.
 - [ ] **Documentation**: Create comprehensive documentation for both users and developers, including API references for plugins.
 - [ ] **Contribution Guidelines**: Establish clear guidelines for contributing to the project, including code style, testing requirements, and issue reporting.
 
