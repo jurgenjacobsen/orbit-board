@@ -7,7 +7,7 @@ export function useDarkMode() {
   useEffect(() => {
     const loadDarkMode = async () => {
       try {
-        const result = await (window as any).api.getSetting('darkMode');
+        const result = await window.api.getSetting('darkMode');
         if (result.success && result.data !== null) {
           setIsDarkMode(result.data === 'true');
         }
@@ -30,7 +30,7 @@ export function useDarkMode() {
     const newValue = !isDarkMode;
     setIsDarkMode(newValue);
     try {
-        await (window as any).api.setSetting('darkMode', String(newValue));
+        await window.api.setSetting('darkMode', String(newValue));
     } catch (err) {
         console.error('Failed to save dark mode setting:', err);
     }

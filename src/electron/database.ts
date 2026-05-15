@@ -1,64 +1,7 @@
-import { getDatabasePath } from './utils/pathResolver.js';
+import { getDatabasePath } from './pathResolver.js';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
-
-export interface Board {
-    id: string;
-    name: string;
-    description: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Column {
-    id: string;
-    board_id: string;
-    name: string;
-    position: number;
-    created_at: string;
-}
-
-export interface Card {
-    id: string;
-    column_id: string;
-    title: string;
-    description: string | null;
-    notes: string | null;
-    due_date: string | null;
-    position: number;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Label {
-    id: string;
-    name: string;
-    color: string;
-    board_id: string;
-}
-
-export interface CardLabel {
-    card_id: string;
-    label_id: string;
-}
-
-export interface Setting {
-    key: string;
-    value: string;
-}
-
-export interface DatabaseSchema {
-    boards: Board[];
-    columns: Column[];
-    cards: Card[];
-    labels: Label[];
-    card_labels: CardLabel[];
-    settings: Setting[];
-    user: {
-        level: number;
-        xp: number;
-    }
-}
+import type { DatabaseSchema } from '../types.js';
 
 export type LowDatabase = Low<DatabaseSchema>;
 
@@ -74,15 +17,36 @@ export async function initDatabase(): Promise<LowDatabase> {
         cards: [],
         labels: [],
         card_labels: [],
-        settings: [],
-        user: {
-            level: 1,
-            xp: 0
-        }
+        attachments: [],
+        settings: []
     });
 
     // Read the database
     await db.read();
+
+    // Clean up recycle bin (items deleted more than 30 days ago)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const filterDeleted = (item: { deleted_at?: string | null }) => {
+        if (!item.deleted_at) return true;
+        return new Date(item.deleted_at) > thirtyDaysAgo;
+    };
+
+    let needsWrite = false;
+    const boardsLength = db.data.boards.length;
+    db.data.boards = db.data.boards.filter(filterDeleted);
+    if (db.data.boards.length !== boardsLength) needsWrite = true;
+
+    const columnsLength = db.data.columns.length;
+    db.data.columns = db.data.columns.filter(filterDeleted);
+    if (db.data.columns.length !== columnsLength) needsWrite = true;
+
+    const cardsLength = db.data.cards.length;
+    db.data.cards = db.data.cards.filter(filterDeleted);
+    if (db.data.cards.length !== cardsLength) needsWrite = true;
+
+    if (needsWrite) await db.write();
 
     // Initialize default settings if not exists
     if (!db.data.settings.find(s => s.key === 'darkMode')) {

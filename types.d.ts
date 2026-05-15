@@ -1,95 +1,73 @@
-type EventPayloadMapping = {
-    'db:getBoards':
-        { success: boolean; data: unknown[]; error?: undefined; } |
-        { success: boolean; error: any; data?: undefined; },
-    'db:getBoard':
-        { success: boolean; data: unknown; error?: undefined; } |
-        { success: boolean; error: any; data?: undefined; },
-    'db:createBoard': any,
-    'db:updateBoard': any,
-    'db:deleteBoard': void,
+import type { Board, Column, Card, Label, ApiResult, Attachment, UserProfile } from './src/types';
 
-    // Column events
-    'db:getColumns': any[],
-    'db:createColumn': any,
-    'db:updateColumn': any,
-    'db:deleteColumn': void,
-    'db:updateColumnsPositions': void,
+declare global {
+    interface Window {
+        api: {
+            // Board operations
+            getBoards: (options?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<ApiResult<Board[]>>,
+            getBoard: (id: string) => Promise<ApiResult<Board>>,
+            createBoard: (board: Partial<Board>) => Promise<ApiResult<Board>>,
+            updateBoard: (board: Board) => Promise<ApiResult<Board>>,
+            deleteBoard: (id: string, permanent?: boolean) => Promise<ApiResult<void>>,
+            bulkDeleteBoards: (ids: string[], permanent?: boolean) => Promise<ApiResult<void>>,
+            archiveBoard: (id: string) => Promise<ApiResult<void>>,
+            restoreBoard: (id: string) => Promise<ApiResult<void>>,
+            bulkRestoreBoards: (ids: string[]) => Promise<ApiResult<void>>,
+            emptyRecycleBin: () => Promise<ApiResult<void>>,
 
-    // Card events
-    'db:getCards': any[],
-    'db:getCardsByBoard': any[],
-    'db:createCard': any,
-    'db:updateCard': any,
-    'db:deleteCard': void,
-    'db:updateCardsPositions': void,
+            // Column operations
+            getColumns: (boardId: string, options?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<ApiResult<Column[]>>,
+            createColumn: (column: Partial<Column>) => Promise<ApiResult<Column>>,
+            updateColumn: (column: Column) => Promise<ApiResult<Column>>,
+            deleteColumn: (id: string, permanent?: boolean) => Promise<ApiResult<void>>,
+            archiveColumn: (id: string) => Promise<ApiResult<void>>,
+            restoreColumn: (id: string) => Promise<ApiResult<void>>,
+            updateColumnsPositions: (columns: { id: string; position: number }[]) => Promise<ApiResult<void>>,
 
-    // Label events
-    'db:getLabels': any[],
-    'db:createLabel': any,
-    'db:updateLabel': any,
-    'db:deleteLabel': void,
-    'db:getCardLabels': any[],
-    'db:addLabelToCard': void,
-    'db:removeLabelFromCard': void,
+            // Card operations
+            getCards: (columnId: string, options?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<ApiResult<Card[]>>,
+            getCardsByBoard: (boardId: string, options?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<ApiResult<Card[]>>,
+            createCard: (card: Partial<Card>) => Promise<ApiResult<Card>>,
+            updateCard: (card: Card) => Promise<ApiResult<Card>>,
+            deleteCard: (id: string, permanent?: boolean) => Promise<ApiResult<void>>,
+            archiveCard: (id: string) => Promise<ApiResult<void>>,
+            restoreCard: (id: string) => Promise<ApiResult<void>>,
+            updateCardsPositions: (cards: { id: string; column_id: string; position: number }[]) => Promise<ApiResult<void>>,
+            searchCards: (query: string) => Promise<ApiResult<Card[]>>,
 
-    // Settings events
-    'db:getSetting': any,
-    'db:setSetting': { success: boolean; error?: undefined; } | { success: boolean; error: any; },
-    'db:resetApplication': any
+            // Attachment operations
+            getAttachments: (cardId: string) => Promise<ApiResult<Attachment[]>>,
+            addAttachment: (cardId: string, file: { name: string; path: string; type: string; size: number }) => Promise<ApiResult<Attachment>>,
+            removeAttachment: (id: string) => Promise<ApiResult<void>>,
 
-    // Export/Import events
-    'db:exportData': any,
-    'db:importData': void
+            // Label operations
+            getLabels: (boardId: string) => Promise<ApiResult<Label[]>>,
+            createLabel: (label: Partial<Label>) => Promise<ApiResult<Label>>,
+            updateLabel: (label: Label) => Promise<ApiResult<Label>>,
+            deleteLabel: (id: string) => Promise<ApiResult<void>>,
+            getCardLabels: (cardId: string) => Promise<ApiResult<Label[]>>,
+            addLabelToCard: (cardId: string, labelId: string) => Promise<ApiResult<void>>,
+            removeLabelFromCard: (cardId: string, labelId: string) => Promise<ApiResult<void>>,
 
-    // Level System
-    'lvl:getCurrent': any,
-    'lvl:completeTask': any
-};
+            // Settings operations
+            getSetting: (key: string) => Promise<ApiResult<string | null>>,
+            setSetting: (key: string, value: string) => Promise<ApiResult<void>>,
 
-interface Window {
-    api: {
-        // Board operations
-        getBoards: () => any,
-        getBoard: (event: any, id: string) => any,
-        createBoard: (board) => any,
-        updateBoard: (board) => any,
-        deleteBoard: (id) => any,
+            // Export/Import
+            exportData: () => Promise<ApiResult<string>>,
+            importData: () => Promise<ApiResult<string>>,
+            resetApplication: () => Promise<ApiResult<void>>,
+            getOverviewData: () => Promise<ApiResult<{
+                upcoming: (Card & { columnName?: string; boardName?: string; boardId?: string })[];
+                recent: (Card & { columnName?: string; boardName?: string; boardId?: string })[];
+            }>>,
 
-        // Column operations
-        getColumns: (boardId) => any,
-        createColumn: (column) => any,
-        updateColumn: (column) => any,
-        deleteColumn: (id) => any,
-        updateColumnsPositions: (columns) => any,
-
-        // Card operations
-        getCards: (columnId) => any,
-        getCardsByBoard: (boardId) => any,
-        createCard: (card) => any,
-        updateCard: (card) => any,
-        deleteCard: (id) => any,
-        updateCardsPositions: (cards) => any,
-
-        // Label operations
-        getLabels: (boardId) => any,
-        createLabel: (label) => any,
-        updateLabel: (label) => any,
-        deleteLabel: (id) => any,
-        getCardLabels: (cardId) => any,
-        addLabelToCard: (cardId, labelId) => any,
-        removeLabelFromCard: (cardId, labelId) => any,
-        // Settings operations
-        resetApplication: () => void
-        getSetting: (key) => any,
-        setSetting: () => any,
-
-        // Export/Import
-        exportData: () => any,
-        importData: () => any,
-
-        // Level System
-        completeTask: () => void,
-        getCurrent: () => void
+            // Profile & Activity
+            getUserProfile: () => Promise<ApiResult<UserProfile>>,
+            updateUserProfile: (profile: UserProfile) => Promise<ApiResult<void>>,
+            getActivityStats: () => Promise<ApiResult<{ [date: string]: number }>>
+        }
     }
 }
+
+export {};

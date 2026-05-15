@@ -1,14 +1,14 @@
 import { app, BrowserWindow,dialog,ipcMain,Notification } from 'electron';
-import { generateId, handleCloseEvents, isDev } from './utils/util.js';
-import { getPreloadPath } from './utils/pathResolver.js';
+import { generateId, handleCloseEvents, isDev } from './util.js';
+import { getPreloadPath } from './pathResolver.js';
 import { createTray } from './tray.js';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import path from 'path';
+import type { Board, Column, Card, Label, Setting, CardLabel, Attachment, UserProfile } from '../types.js';
 import type { LowDatabase } from './database.js';
 import { initDatabase } from './database.js';
 import fs from 'fs';
-import { LevelSystem } from './utils/exp.js'
 
 const notificationTimeouts: NodeJS.Timeout[] = [];
 
@@ -18,10 +18,10 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
 
         // Get cards with due dates by joining data
         const cardsWithDueDates = db.data.cards
-            .filter(card => card.due_date)
-            .map(card => {
-                const column = db.data.columns.find(col => col.id === card.column_id);
-                const board = column ? db.data.boards.find(b => b.id === column.board_id) : null;
+            .filter((card: Card) => card.due_date)
+            .map((card: Card) => {
+                const column = db.data.columns.find((col: Column) => col.id === card.column_id);
+                const board = column ? db.data.boards.find((b: Board) => b.id === column.board_id) : null;
                 return {
                     ...card,
                     column_name: column?.name,
@@ -60,17 +60,53 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
     }
 }
 
+async function purgeRecycleBin(db: LowDatabase) {
+    try {
+        await db.read();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const cutoff = thirtyDaysAgo.getTime();
+
+        let changed = false;
+
+        // Purge Boards
+        const originalBoardCount = db.data.boards.length;
+        db.data.boards = db.data.boards.filter((b: Board) => 
+            !b.deleted_at || new Date(b.deleted_at).getTime() > cutoff
+        );
+        if (db.data.boards.length !== originalBoardCount) changed = true;
+
+        // Purge Columns
+        const originalColumnCount = db.data.columns.length;
+        db.data.columns = db.data.columns.filter((c: Column) => 
+            !c.deleted_at || new Date(c.deleted_at).getTime() > cutoff
+        );
+        if (db.data.columns.length !== originalColumnCount) changed = true;
+
+        // Purge Cards
+        const originalCardCount = db.data.cards.length;
+        db.data.cards = db.data.cards.filter((c: Card) => 
+            !c.deleted_at || new Date(c.deleted_at).getTime() > cutoff
+        );
+        if (db.data.cards.length !== originalCardCount) changed = true;
+
+        if (changed) {
+            await db.write();
+            console.log('Recycle bin purged of items older than 30 days.');
+        }
+    } catch (error) {
+        console.error('Error purging recycle bin:', error);
+    }
+}
+
 app.on('ready', async () => {
     const db = await initDatabase();
-
-    const levels = new LevelSystem(db);
+    await purgeRecycleBin(db);
 
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
         icon: path.join(app.getAppPath(), '/src/assets/icon.png'),
         autoHideMenuBar: true,
-        minHeight: 480,
-        minWidth: 720,
         webPreferences: {
             preload: getPreloadPath(),
         }
@@ -105,10 +141,19 @@ app.on('ready', async () => {
 
     // Database IPC Handlers
     // Get all boards
-    ipcMain.handle('db:getBoards', async () => {
+    ipcMain.handle('db:getBoards', async (_event, options: { includeArchived?: boolean; includeDeleted?: boolean } = {}) => {
         try {
             await db.read();
-            const boards = db.data.boards.slice().sort((a, b) =>
+            let boards = db.data.boards;
+
+            if (!options.includeDeleted) {
+                boards = boards.filter((b: Board) => !b.deleted_at);
+            }
+            if (!options.includeArchived) {
+                boards = boards.filter((b: Board) => !b.archived);
+            }
+
+            boards = boards.sort((a: Board, b: Board) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
             return { success: true, data: boards };
@@ -117,46 +162,48 @@ app.on('ready', async () => {
         }
     });
 
-    ipcMain.handle('db:getBoard', async (event, id) => {
+    ipcMain.handle('db:getBoard', async (_event, id: string) => {
         try {
             await db.read();
-            const board = db.data.boards.find(b => b.id === id);
+            const board = db.data.boards.find((b: Board) => b.id === id);
             return { success: true, data: board };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:createBoard', async (event, board) => {
+    ipcMain.handle('db:createBoard', async (_event, board: Board) => {
         try {
             await db.read();
 
             const newBoard = {
                 ...board,
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                archived: false,
+                deleted_at: null
             };
             db.data.boards.push(newBoard);
 
             // Create default columns
-            const defaultColumns = [
-                { id: generateId(), board_id: board.id, name: 'To Do', position: 0, created_at: new Date().toISOString() },
-                { id: generateId(), board_id: board.id, name: 'In Progress', position: 1, created_at: new Date().toISOString() },
-                { id: generateId(), board_id: board.id, name: 'Done', position: 2, created_at: new Date().toISOString() }
+            const defaultColumns: Column[] = [
+                { id: generateId(), board_id: board.id, name: 'To Do', position: 0, created_at: new Date().toISOString(), archived: false, deleted_at: null },
+                { id: generateId(), board_id: board.id, name: 'In Progress', position: 1, created_at: new Date().toISOString(), archived: false, deleted_at: null },
+                { id: generateId(), board_id: board.id, name: 'Done', position: 2, created_at: new Date().toISOString(), archived: false, deleted_at: null }
             ];
             db.data.columns.push(...defaultColumns);
 
             await db.write();
             return { success: true, data: newBoard };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateBoard', async (event, board) => {
+    ipcMain.handle('db:updateBoard', async (_event, board: Board) => {
         try {
             await db.read();
-            const index = db.data.boards.findIndex(b => b.id === board.id);
+            const index = db.data.boards.findIndex((b: Board) => b.id === board.id);
             if (index >= 0) {
                 db.data.boards[index] = {
                     ...board,
@@ -165,174 +212,384 @@ app.on('ready', async () => {
                 await db.write();
             }
             return { success: true, data: board };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:deleteBoard', async (event, id) => {
+    ipcMain.handle('db:archiveBoard', async (_event, id: string) => {
+        try {
+            await db.read();
+            const index = db.data.boards.findIndex((b: Board) => b.id === id);
+            if (index >= 0) {
+                db.data.boards[index].archived = true;
+                db.data.boards[index].updated_at = new Date().toISOString();
+                await db.write();
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:restoreBoard', async (_event, id: string) => {
+        try {
+            await db.read();
+            const index = db.data.boards.findIndex((b: Board) => b.id === id);
+            if (index >= 0) {
+                db.data.boards[index].archived = false;
+                db.data.boards[index].deleted_at = null;
+                db.data.boards[index].updated_at = new Date().toISOString();
+                await db.write();
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:bulkRestoreBoards', async (_event, ids: string[]) => {
+        try {
+            await db.read();
+            let changed = false;
+            for (const id of ids) {
+                const index = db.data.boards.findIndex((b: Board) => b.id === id);
+                if (index >= 0) {
+                    db.data.boards[index].archived = false;
+                    db.data.boards[index].deleted_at = null;
+                    db.data.boards[index].updated_at = new Date().toISOString();
+                    changed = true;
+                }
+            }
+            if (changed) await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:deleteBoard', async (_event, { id, permanent }: { id: string, permanent?: boolean }) => {
         try {
             await db.read();
 
-            // Delete board
-            db.data.boards = db.data.boards.filter(b => b.id !== id);
-
-            // Collect column IDs and delete columns in one pass
-            const columnIds = new Set<string>();
-            db.data.columns = db.data.columns.filter(c => {
-                if (c.board_id === id) {
-                    columnIds.add(c.id);
-                    return false;
+            if (permanent) {
+                // Permanent Delete logic (existing)
+                db.data.boards = db.data.boards.filter((b: Board) => b.id !== id);
+                const columnIds = new Set<string>();
+                db.data.columns = db.data.columns.filter((c: Column) => {
+                    if (c.board_id === id) {
+                        columnIds.add(c.id);
+                        return false;
+                    }
+                    return true;
+                });
+                db.data.cards = db.data.cards.filter((c: Card) => !columnIds.has(c.column_id));
+                const labelIds = new Set<string>();
+                db.data.labels = db.data.labels.filter((l: Label) => {
+                    if (l.board_id === id) {
+                        labelIds.add(l.id);
+                        return false;
+                    }
+                    return true;
+                });
+                db.data.card_labels = db.data.card_labels.filter((cl: CardLabel) => !labelIds.has(cl.label_id));
+            } else {
+                // Move to Recycle Bin
+                const index = db.data.boards.findIndex((b: Board) => b.id === id);
+                if (index >= 0) {
+                    db.data.boards[index].deleted_at = new Date().toISOString();
+                    db.data.boards[index].updated_at = new Date().toISOString();
                 }
-                return true;
-            });
-
-            // Delete associated cards
-            db.data.cards = db.data.cards.filter(c => !columnIds.has(c.column_id));
-
-            // Collect label IDs and delete labels in one pass
-            const labelIds = new Set<string>();
-            db.data.labels = db.data.labels.filter(l => {
-                if (l.board_id === id) {
-                    labelIds.add(l.id);
-                    return false;
-                }
-                return true;
-            });
-
-            // Delete associated card_labels
-            db.data.card_labels = db.data.card_labels.filter(cl => !labelIds.has(cl.label_id));
+            }
 
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:bulkDeleteBoards', async (_event, { ids, permanent }: { ids: string[], permanent?: boolean }) => {
+        try {
+            await db.read();
+
+            if (permanent) {
+                const idSet = new Set(ids);
+                db.data.boards = db.data.boards.filter((b: Board) => !idSet.has(b.id));
+                
+                const columnIds = new Set<string>();
+                db.data.columns = db.data.columns.filter((c: Column) => {
+                    if (idSet.has(c.board_id)) {
+                        columnIds.add(c.id);
+                        return false;
+                    }
+                    return true;
+                });
+                
+                db.data.cards = db.data.cards.filter((c: Card) => !columnIds.has(c.column_id));
+                
+                const labelIds = new Set<string>();
+                db.data.labels = db.data.labels.filter((l: Label) => {
+                    if (idSet.has(l.board_id)) {
+                        labelIds.add(l.id);
+                        return false;
+                    }
+                    return true;
+                });
+                
+                db.data.card_labels = db.data.card_labels.filter((cl: CardLabel) => !labelIds.has(cl.label_id));
+            } else {
+                for (const id of ids) {
+                    const index = db.data.boards.findIndex((b: Board) => b.id === id);
+                    if (index >= 0) {
+                        db.data.boards[index].deleted_at = new Date().toISOString();
+                        db.data.boards[index].updated_at = new Date().toISOString();
+                    }
+                }
+            }
+
+            await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:emptyRecycleBin', async () => {
+        try {
+            await db.read();
+            
+            // Boards in recycle bin
+            const deletedBoardIds = new Set(
+                db.data.boards.filter(b => b.deleted_at).map(b => b.id)
+            );
+
+            // 1. Permanently delete boards in recycle bin
+            db.data.boards = db.data.boards.filter(b => !b.deleted_at);
+
+            // 2. Permanently delete columns that are either:
+            //    a) marked as deleted themselves
+            //    b) belong to a board that was in the recycle bin
+            const deletedColumnIds = new Set<string>();
+            db.data.columns = db.data.columns.filter(c => {
+                if (c.deleted_at || deletedBoardIds.has(c.board_id)) {
+                    deletedColumnIds.add(c.id);
+                    return false;
+                }
+                return true;
+            });
+
+            // 3. Permanently delete cards that are either:
+            //    a) marked as deleted themselves
+            //    b) belong to a column that was deleted
+            db.data.cards = db.data.cards.filter(c => 
+                !c.deleted_at && !deletedColumnIds.has(c.column_id)
+            );
+
+            // 4. Clean up labels and card_labels for deleted boards
+            const deletedLabelIds = new Set<string>();
+            db.data.labels = db.data.labels.filter(l => {
+                if (deletedBoardIds.has(l.board_id)) {
+                    deletedLabelIds.add(l.id);
+                    return false;
+                }
+                return true;
+            });
+            db.data.card_labels = db.data.card_labels.filter(cl => !deletedLabelIds.has(cl.label_id));
+
+            await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
     // Column operations
-    ipcMain.handle('db:getColumns', async (event, boardId) => {
+    ipcMain.handle('db:getColumns', async (_event, { boardId, options = {} }: { boardId: string, options: { includeArchived?: boolean, includeDeleted?: boolean } }) => {
         try {
             await db.read();
-            const columns = db.data.columns
-                .filter(c => c.board_id === boardId)
-                .sort((a, b) => a.position - b.position);
+            let columns = db.data.columns
+                .filter((c: Column) => c.board_id === boardId);
+
+            if (!options.includeDeleted) {
+                columns = columns.filter((c: Column) => !c.deleted_at);
+            }
+            if (!options.includeArchived) {
+                columns = columns.filter((c: Column) => !c.archived);
+            }
+
+            columns = columns.sort((a: Column, b: Column) => a.position - b.position);
             return { success: true, data: columns };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:createColumn', async (event, column) => {
+    ipcMain.handle('db:createColumn', async (_event, column: Column) => {
         try {
             await db.read();
             const newColumn = {
                 ...column,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                archived: false,
+                deleted_at: null
             };
             db.data.columns.push(newColumn);
             await db.write();
             return { success: true, data: newColumn };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateColumn', async (event, column) => {
+    ipcMain.handle('db:updateColumn', async (_event, column: Column) => {
         try {
             await db.read();
-            const index = db.data.columns.findIndex(c => c.id === column.id);
+            const index = db.data.columns.findIndex((c: Column) => c.id === column.id);
             if (index >= 0) {
                 db.data.columns[index] = column;
                 await db.write();
             }
             return { success: true, data: column };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:deleteColumn', async (event, id) => {
+    ipcMain.handle('db:archiveColumn', async (_event, id: string) => {
+        try {
+            await db.read();
+            const index = db.data.columns.findIndex((c: Column) => c.id === id);
+            if (index >= 0) {
+                db.data.columns[index].archived = true;
+                await db.write();
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:restoreColumn', async (_event, id: string) => {
+        try {
+            await db.read();
+            const index = db.data.columns.findIndex((c: Column) => c.id === id);
+            if (index >= 0) {
+                db.data.columns[index].archived = false;
+                db.data.columns[index].deleted_at = null;
+                await db.write();
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:deleteColumn', async (_event, { id, permanent }: { id: string, permanent?: boolean }) => {
         try {
             await db.read();
 
-            // Delete column
-            db.data.columns = db.data.columns.filter(c => c.id !== id);
-
-            // Delete associated cards
-            db.data.cards = db.data.cards.filter(c => c.column_id !== id);
+            if (permanent) {
+                db.data.columns = db.data.columns.filter((c: Column) => c.id !== id);
+                db.data.cards = db.data.cards.filter((c: Card) => c.column_id !== id);
+            } else {
+                const index = db.data.columns.findIndex((c: Column) => c.id === id);
+                if (index >= 0) {
+                    db.data.columns[index].deleted_at = new Date().toISOString();
+                }
+            }
 
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateColumnsPositions', async (event, columns) => {
+    ipcMain.handle('db:updateColumnsPositions', async (_event, columns: { id: string; position: number }[]) => {
         try {
             await db.read();
             for (const col of columns) {
-                const index = db.data.columns.findIndex(c => c.id === col.id);
+                const index = db.data.columns.findIndex((c: Column) => c.id === col.id);
                 if (index >= 0) {
                     db.data.columns[index].position = col.position;
                 }
             }
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
     // Card operations
-    ipcMain.handle('db:getCards', async (event, columnId) => {
+    ipcMain.handle('db:getCards', async (_event, { columnId, options = {} }: { columnId: string, options: { includeArchived?: boolean } }) => {
         try {
             await db.read();
-            const cards = db.data.cards
-                .filter(c => c.column_id === columnId)
-                .sort((a, b) => a.position - b.position);
-            return { success: true, data: cards };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+            let cards = db.data.cards
+                .filter((c: Card) => c.column_id === columnId && !c.deleted_at);
+
+            if (!options.includeArchived) {
+                cards = cards.filter((c: Card) => !c.archived);
+            }
+
+            const cardsWithData = cards.map((card: Card) => {
+                const attachmentCount = db.data.attachments.filter((a: Attachment) => a.card_id === card.id).length;
+                const labelIds = db.data.card_labels
+                    .filter((cl: CardLabel) => cl.card_id === card.id)
+                    .map((cl: CardLabel) => cl.label_id);
+                return { ...card, attachmentCount, labelIds };
+            });
+
+            const sortedCards = cardsWithData.sort((a: Card, b: Card) => a.position - b.position);
+            return { success: true, data: sortedCards };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:getCardsByBoard', async (event, boardId) => {
+    ipcMain.handle('db:getCardsByBoard', async (_event, { boardId, options = {} }: { boardId: string, options: { includeArchived?: boolean } }) => {
         try {
             await db.read();
             const columnIds = db.data.columns
-                .filter(col => col.board_id === boardId)
-                .map(col => col.id);
-            const cards = db.data.cards
-                .filter(c => columnIds.includes(c.column_id))
-                .sort((a, b) => a.position - b.position);
+                .filter((col: Column) => col.board_id === boardId)
+                .map((col: Column) => col.id);
+            let cards = db.data.cards
+                .filter((c: Card) => columnIds.includes(c.column_id) && !c.deleted_at);
+
+            if (!options.includeArchived) {
+                cards = cards.filter((c: Card) => !c.archived);
+            }
+
+            cards = cards.sort((a: Card, b: Card) => a.position - b.position);
             return { success: true, data: cards };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:createCard', async (event, card) => {
+    ipcMain.handle('db:createCard', async (_event, card: Card) => {
         try {
             await db.read();
             const newCard = {
                 ...card,
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                archived: false,
+                deleted_at: null
             };
             db.data.cards.push(newCard);
             await db.write();
             return { success: true, data: newCard };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateCard', async (event, card) => {
+    ipcMain.handle('db:updateCard', async (_event, card: Card) => {
         try {
             await db.read();
-            const index = db.data.cards.findIndex(c => c.id === card.id);
+            const index = db.data.cards.findIndex((c: Card) => c.id === card.id);
             if (index >= 0) {
                 db.data.cards[index] = {
                     ...card,
@@ -341,27 +598,68 @@ app.on('ready', async () => {
                 await db.write();
             }
             return { success: true, data: card };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:deleteCard', async (event, id) => {
+    ipcMain.handle('db:archiveCard', async (_event, id: string) => {
         try {
             await db.read();
-            db.data.cards = db.data.cards.filter(c => c.id !== id);
-            await db.write();
+            const index = db.data.cards.findIndex((c: Card) => c.id === id);
+            if (index >= 0) {
+                db.data.cards[index].archived = true;
+                db.data.cards[index].updated_at = new Date().toISOString();
+                await db.write();
+            }
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateCardsPositions', async (event, cards) => {
+    ipcMain.handle('db:restoreCard', async (_event, id: string) => {
+        try {
+            await db.read();
+            const index = db.data.cards.findIndex((c: Card) => c.id === id);
+            if (index >= 0) {
+                db.data.cards[index].archived = false;
+                db.data.cards[index].deleted_at = null;
+                db.data.cards[index].updated_at = new Date().toISOString();
+                await db.write();
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:deleteCard', async (_event, { id, permanent }: { id: string, permanent?: boolean }) => {
+        try {
+            await db.read();
+            if (permanent) {
+                db.data.cards = db.data.cards.filter((c: Card) => c.id !== id);
+                // Also delete attachments
+                db.data.attachments = db.data.attachments.filter((a: Attachment) => a.card_id !== id);
+            } else {
+                const index = db.data.cards.findIndex((c: Card) => c.id === id);
+                if (index >= 0) {
+                    db.data.cards[index].deleted_at = new Date().toISOString();
+                    db.data.cards[index].updated_at = new Date().toISOString();
+                }
+            }
+            await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:updateCardsPositions', async (_event, cards: { id: string; column_id: string; position: number }[]) => {
         try {
             await db.read();
             for (const card of cards) {
-                const index = db.data.cards.findIndex(c => c.id === card.id);
+                const index = db.data.cards.findIndex((c: Card) => c.id === card.id);
                 if (index >= 0) {
                     db.data.cards[index].column_id = card.column_id;
                     db.data.cards[index].position = card.position;
@@ -369,118 +667,256 @@ app.on('ready', async () => {
             }
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:searchCards', async (_event, query: string) => {
+        try {
+            await db.read();
+            const lowerQuery = query.toLowerCase();
+            
+            // Find labels that match the query
+            const matchingLabels = db.data.labels.filter((l: Label) => 
+                l.name.toLowerCase().includes(lowerQuery)
+            );
+            const matchingLabelIds = new Set(matchingLabels.map((l: Label) => l.id));
+            
+            // Find card IDs associated with those labels
+            const cardIdsFromLabels = new Set(
+                db.data.card_labels
+                    .filter((cl: CardLabel) => matchingLabelIds.has(cl.label_id))
+                    .map((cl: CardLabel) => cl.card_id)
+            );
+
+            const cards = db.data.cards.filter((c: Card) =>
+                !c.deleted_at &&
+                (c.title.toLowerCase().includes(lowerQuery) ||
+                (c.description && c.description.toLowerCase().includes(lowerQuery)) ||
+                (c.notes && c.notes.toLowerCase().includes(lowerQuery)) ||
+                cardIdsFromLabels.has(c.id))
+            );
+
+            // Add board_id to each card
+            const cardsWithBoardId = cards.map((c: Card) => {
+                const column = db.data.columns.find((col: Column) => col.id === c.column_id);
+                return {
+                    ...c,
+                    board_id: column?.board_id
+                };
+            });
+
+            return { success: true, data: cardsWithBoardId };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    // Attachment operations
+    ipcMain.handle('db:getAttachments', async (_event, cardId: string) => {
+        try {
+            await db.read();
+            const attachments = db.data.attachments.filter((a: Attachment) => a.card_id === cardId);
+            return { success: true, data: attachments };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:addAttachment', async (_event, { cardId, file }: { cardId: string, file: { name: string, path: string, type: string, size: number } }) => {
+        try {
+            await db.read();
+
+            // In a real app, we'd copy the file to a local storage folder.
+            // For now, we'll just store the reference.
+            const newAttachment: Attachment = {
+                id: generateId(),
+                card_id: cardId,
+                name: file.name,
+                path: file.path,
+                type: file.type,
+                size: file.size,
+                created_at: new Date().toISOString()
+            };
+
+            db.data.attachments.push(newAttachment);
+            await db.write();
+            return { success: true, data: newAttachment };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:removeAttachment', async (_event, id: string) => {
+        try {
+            await db.read();
+            db.data.attachments = db.data.attachments.filter((a: Attachment) => a.id !== id);
+            await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+
+    ipcMain.handle('db:getOverviewData', async () => {
+        try {
+            await db.read();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+
+            // Get all non-deleted, non-archived cards
+            const allCards = db.data.cards.filter((c: Card) => !c.deleted_at && !c.archived);
+
+            // Enrich with board/column info
+            const enrichedCards = allCards.map((card: Card) => {
+                const column = db.data.columns.find((col: Column) => col.id === card.column_id);
+                const board = column ? db.data.boards.find((b: Board) => b.id === column.board_id) : null;
+                
+                if (!column || !board) return null;
+
+                return {
+                    ...card,
+                    columnName: column.name,
+                    boardName: board.name,
+                    boardId: board.id
+                };
+            }).filter(c => c !== null) as any[];
+
+            // Upcoming Cards (due today or in next 7 days)
+            const upcoming = enrichedCards
+                .filter(c => c.due_date && new Date(c.due_date) >= today && new Date(c.due_date) <= nextWeek)
+                .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+                .slice(0, 10);
+
+            // Recent Activity (last 10 updated cards)
+            const recent = [...enrichedCards]
+                .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                .slice(0, 10);
+
+            return {
+                success: true,
+                data: {
+                    upcoming,
+                    recent
+                }
+            };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
     // Label operations
-    ipcMain.handle('db:getLabels', async (event, boardId) => {
+    ipcMain.handle('db:getLabels', async (_event, boardId: string) => {
         try {
             await db.read();
-            const labels = db.data.labels.filter(l => l.board_id === boardId);
+            const labels = db.data.labels.filter((l: Label) => l.board_id === boardId);
             return { success: true, data: labels };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:createLabel', async (event, label) => {
+    ipcMain.handle('db:createLabel', async (_event, label: Label) => {
         try {
             await db.read();
             db.data.labels.push(label);
             await db.write();
             return { success: true, data: label };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:updateLabel', async (event, label) => {
+    ipcMain.handle('db:updateLabel', async (_event, label: Label) => {
         try {
             await db.read();
-            const index = db.data.labels.findIndex(l => l.id === label.id);
+            const index = db.data.labels.findIndex((l: Label) => l.id === label.id);
             if (index >= 0) {
                 db.data.labels[index] = label;
                 await db.write();
             }
             return { success: true, data: label };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:deleteLabel', async (event, id) => {
+    ipcMain.handle('db:deleteLabel', async (_event, id: string) => {
         try {
             await db.read();
-            db.data.labels = db.data.labels.filter(l => l.id !== id);
-            db.data.card_labels = db.data.card_labels.filter(cl => cl.label_id !== id);
+            db.data.labels = db.data.labels.filter((l: Label) => l.id !== id);
+            db.data.card_labels = db.data.card_labels.filter((cl: any) => cl.label_id !== id);
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
     // Card-Label operations
-    ipcMain.handle('db:getCardLabels', async (event, cardId) => {
+    ipcMain.handle('db:getCardLabels', async (_event, cardId: string) => {
         try {
             await db.read();
             const labelIds = db.data.card_labels
-                .filter(cl => cl.card_id === cardId)
-                .map(cl => cl.label_id);
-            const labels = db.data.labels.filter(l => labelIds.includes(l.id));
+                .filter((cl: any) => cl.card_id === cardId)
+                .map((cl: any) => cl.label_id);
+            const labels = db.data.labels.filter((l: Label) => labelIds.includes(l.id));
             return { success: true, data: labels };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:addLabelToCard', async (event, { cardId, labelId }) => {
+    ipcMain.handle('db:addLabelToCard', async (_event, { cardId, labelId }: { cardId: string, labelId: string }) => {
         try {
             await db.read();
             // Check if it already exists
             const exists = db.data.card_labels.some(
-                cl => cl.card_id === cardId && cl.label_id === labelId
+                (cl: any) => cl.card_id === cardId && cl.label_id === labelId
             );
             if (!exists) {
                 db.data.card_labels.push({ card_id: cardId, label_id: labelId });
                 await db.write();
             }
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:removeLabelFromCard', async (event, { cardId, labelId }) => {
+    ipcMain.handle('db:removeLabelFromCard', async (_event, { cardId, labelId }: { cardId: string, labelId: string }) => {
         try {
             await db.read();
             db.data.card_labels = db.data.card_labels.filter(
-                cl => !(cl.card_id === cardId && cl.label_id === labelId)
+                (cl: any) => !(cl.card_id === cardId && cl.label_id === labelId)
             );
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
     // Settings operations
-    ipcMain.handle('db:getSetting', async (event, key) => {
+    ipcMain.handle('db:getSetting', async (_event, key: string) => {
         try {
             await db.read();
-            const setting = db.data.settings.find(s => s.key === key);
+            const setting = db.data.settings.find((s: Setting) => s.key === key);
             return { success: true, data: setting ? setting.value : null };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('db:setSetting', async (event, { key, value }) => {
+    ipcMain.handle('db:setSetting', async (_event, { key, value }: { key: string, value: string }) => {
         try {
             await db.read();
-            const index = db.data.settings.findIndex(s => s.key === key);
+            const index = db.data.settings.findIndex((s: Setting) => s.key === key);
             if (index >= 0) {
                 db.data.settings[index].value = value;
             } else {
@@ -488,8 +924,8 @@ app.on('ready', async () => {
             }
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
@@ -506,8 +942,7 @@ app.on('ready', async () => {
                 cards: db.data.cards,
                 labels: db.data.labels,
                 cardLabels: db.data.card_labels,
-                settings: db.data.settings,
-                user: db.data.user
+                settings: db.data.settings
             };
 
             const { filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -521,8 +956,8 @@ app.on('ready', async () => {
                 return { success: true, data: filePath };
             }
             return { success: false, error: 'Export cancelled' };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
@@ -554,20 +989,16 @@ app.on('ready', async () => {
                 if (importData.settings) {
                     db.data.settings = importData.settings;
                 }
-                if (importData.user) {
-                    db.data.user = importData.user;
-                }
 
                 await db.write();
                 return { success: true, data: 'Import successful' };
             }
             return { success: false, error: 'Import cancelled' };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    // Reset Application Data
     ipcMain.handle('db:resetApplication', async () => {
         try {
             await db.read();
@@ -577,40 +1008,80 @@ app.on('ready', async () => {
             db.data.labels = [];
             db.data.card_labels = [];
             db.data.settings = [];
-            db.data.user = {
-                level: 1,
-                xp: 0
+            await db.write();
+            return { success: true };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    // Profile & Activity
+    ipcMain.handle('db:getUserProfile', async () => {
+        try {
+            await db.read();
+            const profileSetting = db.data.settings.find(s => s.key === 'userProfile');
+            if (profileSetting) {
+                return { success: true, data: JSON.parse(profileSetting.value) as UserProfile };
+            }
+            return { 
+                success: true, 
+                data: { name: 'User Name', username: 'username', avatar: '' } as UserProfile 
+            };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('db:updateUserProfile', async (_event, profile: UserProfile) => {
+        try {
+            await db.read();
+            const index = db.data.settings.findIndex(s => s.key === 'userProfile');
+            const value = JSON.stringify(profile);
+            if (index >= 0) {
+                db.data.settings[index].value = value;
+            } else {
+                db.data.settings.push({ key: 'userProfile', value });
             }
             await db.write();
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 
-    ipcMain.handle('lvl:completeTask', async () => {
+    ipcMain.handle('db:getActivityStats', async () => {
         try {
-            const response = await levels.completeTask();
-            return {
-                success: true,
-                data: response
-            }
-        } catch (error: any) {
-            return { success: false, error: error.message }
-        }
-    });
+            await db.read();
+            const stats: { [date: string]: number } = {};
+            
+            const addDate = (dateStr: any) => {
+                if (!dateStr || typeof dateStr !== 'string') return;
+                try {
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return;
+                    // Use local date for the heatmap keys to match user's perspective
+                    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    stats[dateKey] = (stats[dateKey] || 0) + 1;
+                } catch (e) {
+                    // Ignore invalid dates
+                }
+            };
 
-    ipcMain.handle('lvl:getCurrent', async () => {
-        try {
-            let level = await levels.getCurrent();
-            let progress = await levels.getProgress();
+            // Process all major entities for activity
+            db.data.cards.forEach(card => {
+                addDate(card.created_at);
+                if (card.updated_at && card.updated_at !== card.created_at) {
+                    addDate(card.updated_at);
+                }
+            });
 
-            return {
-                success: true,
-                data: { ...level, progress }
-            }
-        } catch(error: any) {
-            return { success: false, error: error.message }
+            db.data.boards.forEach(b => addDate(b.created_at));
+            db.data.columns.forEach(c => addDate(c.created_at));
+            db.data.attachments.forEach(a => addDate(a.created_at));
+
+            return { success: true, data: stats };
+        } catch (error: unknown) {
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     });
 });

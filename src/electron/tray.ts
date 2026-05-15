@@ -1,12 +1,12 @@
 import { BrowserWindow, Menu, Tray, app } from "electron";
-import { getAssetPath } from "./utils/pathResolver.js";
+import { getAssetPath } from "./pathResolver.js";
 import path from "path";
 
 export function createTray(mainWindow: BrowserWindow) {
   const tray = new Tray(
     path.join(
       getAssetPath(),
-      process.platform === 'darwin' ? 'iconTemplate.png' : 'icon.png'
+      process.platform === 'darwin' ? 'iconTemplate.png' : 'icon_rounded.png'
     )
   );
 

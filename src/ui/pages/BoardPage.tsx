@@ -1,41 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, ArrowLeft, Trash2, Edit2, Save } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Edit2, Save, Paperclip, File, X, Filter, Search, Archive, RefreshCw } from "lucide-react";
 import { getApi } from "../utils/mockApi";
-
-declare global {
-    interface Window {
-        api: any;
-    }
-}
-
-interface Board {
-    id: string;
-    name: string;
-    description: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-interface Column {
-    id: string;
-    board_id: string;
-    name: string;
-    position: number;
-    created_at: string;
-}
-
-interface Card {
-    id: string;
-    column_id: string;
-    title: string;
-    description: string | null;
-    notes: string | null;
-    due_date: string | null;
-    position: number;
-    created_at: string;
-    updated_at: string;
-}
+import type { Board, Column, Card, Attachment, Label } from "../../types";
+import Markdown from "../components/Markdown";
 
 export default function BoardPage() {
     const { boardId } = useParams<{ boardId: string }>();
@@ -43,53 +11,64 @@ export default function BoardPage() {
     const [board, setBoard] = useState<Board | null>(null);
     const [columns, setColumns] = useState<Column[]>([]);
     const [cards, setCards] = useState<{ [columnId: string]: Card[] }>({});
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
 
-    // Column Creation State
+    // Filter State
+    const [filterQuery, setFilterQuery] = useState("");
+    const [filterLabels, setFilterLabels] = useState<string[]>([]);
+    const [filterDueSoon, setFilterDueSoon] = useState(false);
+    const [includeArchived, setIncludeArchived] = useState(false);
+    const [allLabels, setAllLabels] = useState<Label[]>([]);
+    const [isFilterVisible, setIsFilterVisible] = useState(false);
+
+    // UI States
     const [isAddingColumn, setIsAddingColumn] = useState(false);
     const [newColumnName, setNewColumnName] = useState("");
-
-    // Column Editing State
     const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
     const [tempColumnName, setTempColumnName] = useState("");
-
-    // Card Creation/Editing/Drag State
     const [isAddingCard, setIsAddingCard] = useState<string | null>(null);
     const [newCardTitle, setNewCardTitle] = useState("");
     const [draggedCard, setDraggedCard] = useState<Card | null>(null);
     const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
     const [editingCard, setEditingCard] = useState<Card | null>(null);
-
-    // Column Drag State
     const [draggedColumn, setDraggedColumn] = useState<Column | null>(null);
+    const [previewDescription, setPreviewDescription] = useState(false);
+    const [previewNotes, setPreviewNotes] = useState(false);
 
-    useEffect(() => {
-        if (boardId) {
-            loadBoard();
-            loadColumns();
+    const loadLabels = useCallback(async () => {
+        if (!boardId) return;
+        try {
+            const api = getApi();
+            const result = await api.getLabels(boardId);
+            if (result.success && result.data) {
+                setAllLabels(result.data);
+            }
+        } catch (error) {
+            console.error("Failed to load labels:", error);
         }
     }, [boardId]);
 
-    const loadBoard = async () => {
+    const loadCards = useCallback(async (columnId: string) => {
         try {
             const api = getApi();
-            const result = await api.getBoard(boardId);
-            if (result.success) {
-                setBoard(result.data);
+            const result = await api.getCards(columnId, { includeArchived: true });
+            if (result.success && result.data) {
+                const sortedCards = result.data.sort((a: Card, b: Card) => a.position - b.position);
+                setCards(prev => ({ ...prev, [columnId]: sortedCards }));
             }
         } catch (error) {
-            console.error("Failed to load board:", error);
+            console.error("Failed to load cards:", error);
         }
-    };
+    }, []);
 
-    const loadColumns = async () => {
+    const loadColumns = useCallback(async () => {
+        if (!boardId) return;
         try {
             const api = getApi();
-            const result = await api.getColumns(boardId);
-            if (result.success) {
+            const result = await api.getColumns(boardId, { includeArchived: true });
+            if (result.success && result.data) {
                 const sortedColumns = result.data.sort((a: Column, b: Column) => a.position - b.position);
                 setColumns(sortedColumns);
-
-                // Load cards for each column
                 for (const column of sortedColumns) {
                     await loadCards(column.id);
                 }
@@ -97,24 +76,127 @@ export default function BoardPage() {
         } catch (error) {
             console.error("Failed to load columns:", error);
         }
-    };
+    }, [boardId, loadCards]);
 
-    const loadCards = async (columnId: string) => {
+    const loadBoard = useCallback(async () => {
+        if (!boardId) return;
         try {
             const api = getApi();
-            const result = await api.getCards(columnId);
-            if (result.success) {
-                const sortedCards = result.data.sort((a: Card, b: Card) => a.position - b.position);
-                setCards(prev => ({ ...prev, [columnId]: sortedCards }));
+            const result = await api.getBoard(boardId);
+            if (result.success && result.data) {
+                setBoard(result.data);
             }
         } catch (error) {
-            console.error("Failed to load cards:", error);
+            console.error("Failed to load board:", error);
+        }
+    }, [boardId]);
+
+    useEffect(() => {
+        if (boardId) {
+            loadBoard();
+            loadColumns();
+            loadLabels();
+        }
+    }, [boardId, loadBoard, loadColumns, loadLabels]);
+
+    const loadAttachments = useCallback(async (cardId: string) => {
+        try {
+            const api = getApi();
+            const result = await api.getAttachments(cardId);
+            if (result.success && result.data) {
+                setAttachments(result.data);
+            }
+        } catch (error) {
+            console.error("Failed to load attachments:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (editingCard) {
+            loadAttachments(editingCard.id);
+            setPreviewDescription(false);
+            setPreviewNotes(false);
+        } else {
+            setAttachments([]);
+        }
+    }, [editingCard, loadAttachments]);
+
+    const getFilteredCards = useCallback((columnId: string) => {
+        const columnCards = cards[columnId] || [];
+        return columnCards.filter(card => {
+            if (!includeArchived && card.archived) return false;
+            
+            const query = filterQuery.toLowerCase();
+            const matchesQuery = !query || 
+                card.title.toLowerCase().includes(query) ||
+                (card.description && card.description.toLowerCase().includes(query)) ||
+                (card.notes && card.notes.toLowerCase().includes(query));
+
+            const matchesLabels = filterLabels.length === 0 || 
+                filterLabels.every(labelId => (card as any).labelIds?.includes(labelId));
+
+            let matchesDueSoon = true;
+            if (filterDueSoon) {
+                if (!card.due_date) {
+                    matchesDueSoon = false;
+                } else {
+                    const dueDate = new Date(card.due_date);
+                    const now = new Date();
+                    const diffDays = (dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24);
+                    matchesDueSoon = diffDays >= -1 && diffDays <= 3;
+                }
+            }
+
+            return matchesQuery && matchesLabels && matchesDueSoon;
+        });
+    }, [cards, filterQuery, filterLabels, filterDueSoon, includeArchived]);
+
+    const toggleFilterLabel = (labelId: string) => {
+        setFilterLabels(prev => 
+            prev.includes(labelId) 
+                ? prev.filter(id => id !== labelId) 
+                : [...prev, labelId]
+        );
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingCard) return;
+        try {
+            const api = getApi();
+            const fileData = {
+                name: file.name,
+                path: (file as any).path || file.name,
+                type: file.type,
+                size: file.size,
+            };
+            const result = await api.addAttachment(editingCard.id, fileData);
+            if (result.success) {
+                await loadAttachments(editingCard.id);
+                await loadCards(editingCard.column_id);
+            }
+        } catch (error) {
+            console.error("Failed to upload attachment:", error);
+        }
+        e.target.value = '';
+    };
+
+    const removeAttachment = async (id: string) => {
+        if (!confirm("Are you sure you want to remove this attachment?")) return;
+        try {
+            const api = getApi();
+            const result = await api.removeAttachment(id);
+            if (result.success && editingCard) {
+                await loadAttachments(editingCard.id);
+                await loadCards(editingCard.column_id);
+            }
+        } catch (error) {
+            console.error("Failed to remove attachment:", error);
         }
     };
 
     const createColumn = async () => {
         if (!newColumnName.trim() || !boardId) return;
-
         try {
             const api = getApi();
             const column = {
@@ -123,7 +205,6 @@ export default function BoardPage() {
                 name: newColumnName,
                 position: columns.length,
             };
-
             const result = await api.createColumn(column);
             if (result.success) {
                 await loadColumns();
@@ -136,8 +217,7 @@ export default function BoardPage() {
     };
 
     const deleteColumn = async (columnId: string) => {
-        if (!confirm("Are you sure you want to delete this column? All cards in it will be deleted.")) return;
-
+        if (!confirm("Are you sure you want to delete this column? All cards in it will be moved to the recycle bin.")) return;
         try {
             const api = getApi();
             const result = await api.deleteColumn(columnId);
@@ -149,8 +229,32 @@ export default function BoardPage() {
         }
     };
 
+    const archiveColumn = async (id: string) => {
+        try {
+            const api = getApi();
+            const result = await api.archiveColumn(id);
+            if (result.success) {
+                await loadColumns();
+            }
+        } catch (error) {
+            console.error("Failed to archive column:", error);
+        }
+    };
+
+    const restoreColumn = async (id: string) => {
+        try {
+            const api = getApi();
+            const result = await api.restoreColumn(id);
+            if (result.success) {
+                await loadColumns();
+            }
+        } catch (error) {
+            console.error("Failed to restore column:", error);
+        }
+    };
+
     const deleteBoard = async (boardId: string) => {
-        if (!confirm("Are you sure you want to delete this board? All columns and cards in it will be deleted.")) return;
+        if (!confirm("Are you sure you want to delete this board? All columns and cards in it will be moved to the recycle bin.")) return;
         try {
             const api = getApi();
             const result = await api.deleteBoard(boardId);
@@ -162,7 +266,6 @@ export default function BoardPage() {
         }
     };
 
-    // --- Update Column Name Logic ---
     const startEditingColumn = (column: Column) => {
         setEditingColumnId(column.id);
         setTempColumnName(column.name);
@@ -174,17 +277,14 @@ export default function BoardPage() {
             setEditingColumnId(null);
             return;
         }
-
         const originalColumn = columns.find(c => c.id === columnId);
         if (originalColumn && originalColumn.name === trimmedName) {
             setEditingColumnId(null);
             return;
         }
-
         try {
             const api = getApi();
-            const result = await api.updateColumn({ ...originalColumn, id: columnId, name: trimmedName });
-
+            const result = await api.updateColumn({ ...originalColumn, id: columnId, name: trimmedName } as Column);
             if (result.success) {
                 await loadColumns();
             }
@@ -194,9 +294,7 @@ export default function BoardPage() {
         setEditingColumnId(null);
     };
 
-    // --- Column Drag and Drop Logic ---
     const handleColumnDragStart = (e: React.DragEvent, column: Column) => {
-        // Prevent card drag handler from firing if we grabbed the column
         e.stopPropagation();
         setDraggedColumn(column);
     };
@@ -208,50 +306,29 @@ export default function BoardPage() {
     const handleColumnDrop = async (e: React.DragEvent, targetColumnId: string) => {
         e.preventDefault();
         e.stopPropagation();
-
-        // Ensure we are dragging a column, not a card
-        if (!draggedColumn) return;
-
-        // If dropped on itself, do nothing
-        if (draggedColumn.id === targetColumnId) {
+        if (!draggedColumn || draggedColumn.id === targetColumnId) {
             setDraggedColumn(null);
             return;
         }
-
         const currentColumns = [...columns];
         const sourceIndex = currentColumns.findIndex(c => c.id === draggedColumn.id);
         const targetIndex = currentColumns.findIndex(c => c.id === targetColumnId);
-
-        // Reorder array locally
         const [removed] = currentColumns.splice(sourceIndex, 1);
         currentColumns.splice(targetIndex, 0, removed);
-
-        // Optimistically update state
         setColumns(currentColumns);
-
-        // Update positions in API
         try {
             const api = getApi();
-            const updates = currentColumns.map((col, index) => {
-                // Only update if position actually changed
-                if (col.position !== index) {
-                    return api.updateColumn({ ...col, position: index });
-                }
-                return Promise.resolve();
-            });
-            await Promise.all(updates);
+            const updates = currentColumns.map((col, index) => ({ id: col.id, position: index }));
+            await api.updateColumnsPositions(updates);
         } catch (error) {
             console.error("Failed to reorder columns:", error);
-            // Revert on error (optional, but good practice)
             loadColumns();
         }
-
         setDraggedColumn(null);
     };
 
     const createCard = async (columnId: string) => {
         if (!newCardTitle.trim()) return;
-
         try {
             const api = getApi();
             const columnCards = cards[columnId] || [];
@@ -264,7 +341,6 @@ export default function BoardPage() {
                 due_date: null,
                 position: columnCards.length,
             };
-
             const result = await api.createCard(card);
             if (result.success) {
                 await loadCards(columnId);
@@ -277,8 +353,7 @@ export default function BoardPage() {
     };
 
     const deleteCard = async (cardId: string, columnId: string) => {
-        if (!confirm("Are you sure you want to delete this card?")) return;
-
+        if (!confirm("Are you sure you want to delete this card? It will be moved to the recycle bin.")) return;
         try {
             const api = getApi();
             const result = await api.deleteCard(cardId);
@@ -287,6 +362,30 @@ export default function BoardPage() {
             }
         } catch (error) {
             console.error("Failed to delete card:", error);
+        }
+    };
+
+    const archiveCard = async (id: string, columnId: string) => {
+        try {
+            const api = getApi();
+            const result = await api.archiveCard(id);
+            if (result.success) {
+                await loadCards(columnId);
+            }
+        } catch (error) {
+            console.error("Failed to archive card:", error);
+        }
+    };
+
+    const restoreCard = async (id: string, columnId: string) => {
+        try {
+            const api = getApi();
+            const result = await api.restoreCard(id);
+            if (result.success) {
+                await loadCards(columnId);
+            }
+        } catch (error) {
+            console.error("Failed to restore card:", error);
         }
     };
 
@@ -304,7 +403,6 @@ export default function BoardPage() {
     };
 
     const handleDragStart = (e: React.DragEvent, card: Card) => {
-        // Prevent column drag start from firing
         e.stopPropagation();
         setDraggedCard(card);
     };
@@ -312,7 +410,6 @@ export default function BoardPage() {
     const handleDragOver = (e: React.DragEvent, columnId: string) => {
         e.preventDefault();
         e.stopPropagation();
-        // Only allow card drop visuals if we are actually dragging a card
         if(draggedCard) {
             setDraggedOverColumn(columnId);
         }
@@ -321,45 +418,28 @@ export default function BoardPage() {
     const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
         e.preventDefault();
         e.stopPropagation();
-
-        // If we are dragging a column, this is the wrong handler (though stopPropagation in columnDrop handles most cases)
-        if (draggedColumn) {
-             // Pass to column drop handler logic if needed,
-             // but usually better to separate the drop zones or use conditional logic here.
-             // Since the drop zone is the column div, we can reuse this event or split them.
-             // For clarity, we will handle column drop inside the column wrapper onDrop.
-             return;
-        }
-
-        if (!draggedCard) return;
-
-        // If dropped in the same column, do nothing
-        if (draggedCard.column_id === targetColumnId) {
+        if (draggedColumn) return;
+        if (!draggedCard || draggedCard.column_id === targetColumnId) {
             setDraggedCard(null);
             setDraggedOverColumn(null);
             return;
         }
-
-        // Update card's column
         const targetCards = cards[targetColumnId] || [];
         const updatedCard = {
             ...draggedCard,
             column_id: targetColumnId,
             position: targetCards.length,
         };
-
         try {
             const api = getApi();
             const result = await api.updateCard(updatedCard);
             if (result.success) {
-                // Reload both columns
                 await loadCards(draggedCard.column_id);
                 await loadCards(targetColumnId);
             }
         } catch (error) {
             console.error("Failed to move card:", error);
         }
-
         setDraggedCard(null);
         setDraggedOverColumn(null);
     };
@@ -382,69 +462,122 @@ export default function BoardPage() {
                         <div>
                             <h2 className='text-3xl font-semibold'>{board.name}</h2>
                             {board.description && (
-                                <p className='text-gray-600 dark:text-gray-400 mt-1'>{board.description}</p>
+                                <p className='text-gray-600 mt-1'>{board.description}</p>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => (board.id)}
-                            className='p-2 rounded-lg bg-gray-100  duration-300 transition-colors cursor-pointer hover:bg-gray-200'
+                            onClick={() => setIsFilterVisible(!isFilterVisible)}
+                            className={`p-2 rounded-lg duration-300 transition-colors cursor-pointer flex items-center gap-2 ${isFilterVisible || filterQuery || filterLabels.length > 0 || filterDueSoon || includeArchived ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                            title='Filter cards'
                         >
-                            <Edit2 className='h-6 w-6' />
+                            <Filter className='h-5 w-5' />
+                            <span className='text-sm font-medium'>Filter</span>
                         </button>
                         <button
                             onClick={() => deleteBoard(board.id)}
-                            className='p-2 rounded-lg bg-gray-100  duration-300 transition-colors cursor-pointer hover:bg-red-500/75'
+                            className='p-2 rounded-lg bg-gray-100 duration-300 transition-colors cursor-pointer hover:bg-red-500/75'
                         >
-                            <Trash2 className='h-6 w-6' />
+                            <Trash2 className='h-5 w-5' />
                         </button>
                     </div>
                 </div>
+
+                {isFilterVisible && (
+                    <div className='bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-2 mt-4'>
+                        <div className='flex flex-wrap gap-4 items-center'>
+                            <div className='relative flex-1 min-w-[200px]'>
+                                <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+                                <input
+                                    type='text'
+                                    placeholder='Filter by title or description...'
+                                    value={filterQuery}
+                                    onChange={(e) => setFilterQuery(e.target.value)}
+                                    className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
+                                />
+                            </div>
+                            <button
+                                onClick={() => setFilterDueSoon(!filterDueSoon)}
+                                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${filterDueSoon ? 'bg-orange-100 border-orange-300 text-orange-700' : 'bg-white border-gray-300 hover:bg-gray-100'}`}
+                            >
+                                Due Soon
+                            </button>
+                            <button
+                                onClick={() => setIncludeArchived(!includeArchived)}
+                                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${includeArchived ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-gray-300 hover:bg-gray-100'}`}
+                            >
+                                {includeArchived ? 'Hide Archived' : 'Show Archived'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setFilterQuery("");
+                                    setFilterLabels([]);
+                                    setFilterDueSoon(false);
+                                    setIncludeArchived(false);
+                                }}
+                                className='text-sm text-blue-600 hover:underline'
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                        {allLabels.length > 0 && (
+                            <div className='flex flex-wrap gap-2 items-center'>
+                                <span className='text-xs font-semibold uppercase text-gray-500 mr-2'>Labels:</span>
+                                {allLabels.map(label => (
+                                    <button
+                                        key={label.id}
+                                        onClick={() => toggleFilterLabel(label.id)}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${filterLabels.includes(label.id) ? 'ring-2 ring-offset-1 ring-blue-400' : 'opacity-60 hover:opacity-100'}`}
+                                        style={{ 
+                                            backgroundColor: label.color + '20', 
+                                            borderColor: label.color,
+                                            color: label.color 
+                                        }}
+                                    >
+                                        {label.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </header>
+
             <main className='flex-1 overflow-x-auto p-6'>
                 <div className='flex gap-4 h-[calc(100%-1rem)]'>
-                    {columns.map((column) => (
+                    {columns.filter(c => includeArchived || !c.archived).map((column) => (
                         <div
                             key={column.id}
                             draggable
                             onDragStart={(e) => handleColumnDragStart(e, column)}
                             onDragOver={(e) => {
-                                // Decide whether to show card drag over or column drag over effects
-                                if (draggedCard) {
-                                    handleDragOver(e, column.id);
-                                } else if (draggedColumn) {
-                                    handleColumnDragOver(e);
-                                }
+                                if (draggedCard) handleDragOver(e, column.id);
+                                else if (draggedColumn) handleColumnDragOver(e);
                             }}
                             onDrop={(e) => {
-                                if (draggedCard) {
-                                    handleDrop(e, column.id);
-                                } else if (draggedColumn) {
-                                    handleColumnDrop(e, column.id);
-                                }
+                                if (draggedCard) handleDrop(e, column.id);
+                                else if (draggedColumn) handleColumnDrop(e, column.id);
                             }}
                             className={`shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col transition-opacity duration-200 ${
                                 draggedOverColumn === column.id && draggedCard ? 'bg-blue-100 ' : 'bg-gray-50'
-                            } ${draggedColumn?.id === column.id ? 'opacity-50 border-dashed border border-indigo-600 ' : ''}`}
+                            } ${draggedColumn?.id === column.id ? 'opacity-50 border-dashed border border-indigo-600 ' : ''} ${column.archived ? 'opacity-60 bg-gray-200' : ''}`}
                         >
                             <div className='flex items-center justify-between mb-4 min-h-8 cursor-grab active:cursor-grabbing'>
                                 {editingColumnId === column.id ? (
-                                    // --- Edit Mode ---
                                     <div className="flex items-center gap-2 w-full">
                                         <input
                                             autoFocus
                                             type="text"
                                             value={tempColumnName}
-                                            spellCheck={false}
                                             onChange={(e) => setTempColumnName(e.target.value)}
                                             onBlur={() => updateColumnName(column.id)}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') updateColumnName(column.id);
                                                 if (e.key === 'Escape') setEditingColumnId(null);
                                             }}
-                                            className="flex-1 px-1 text-lg font-semibold ring-1 ring-indigo-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
+                                            className="flex-1 p-1 text-lg font-semibold border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                            onMouseDown={(e) => e.stopPropagation()}
                                         />
                                         <button
                                             onClick={() => updateColumnName(column.id)}
@@ -455,17 +588,33 @@ export default function BoardPage() {
                                         </button>
                                     </div>
                                 ) : (
-                                    // --- Display Mode ---
                                     <>
                                         <h3
-                                            className='text-lg font-semibold hover:bg-gray-200 px-1 rounded-md truncate flex-1 select-none cursor-text'
+                                            className='text-lg font-semibold hover:bg-gray-200 px-1 rounded truncate flex-1 select-none cursor-text flex items-center gap-2'
                                             onClick={() => startEditingColumn(column)}
-                                            onDoubleClick={() => startEditingColumn(column)}
                                             title="Double-click to edit, Drag to reorder"
                                         >
+                                            {column.archived && <Archive className='h-4 w-4 text-gray-500' />}
                                             {column.name}
                                         </h3>
                                         <div className="flex gap-1">
+                                            {column.archived ? (
+                                                <button
+                                                    onClick={() => restoreColumn(column.id)}
+                                                    className='p-1 rounded hover:bg-green-100 text-green-600'
+                                                    title='Restore column'
+                                                >
+                                                    <RefreshCw className='h-4 w-4' />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => archiveColumn(column.id)}
+                                                    className='p-1 rounded hover:bg-indigo-100 text-indigo-600'
+                                                    title='Archive column'
+                                                >
+                                                    <Archive className='h-4 w-4' />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => deleteColumn(column.id)}
                                                 className='p-1 rounded hover:bg-red-100 text-red-600'
@@ -478,15 +627,18 @@ export default function BoardPage() {
                                 )}
                             </div>
                             <div className='flex-1 overflow-y-auto space-y-2 mb-2'>
-                                {(cards[column.id] || []).map((card) => (
+                                {getFilteredCards(column.id).map((card) => (
                                     <div
                                         key={card.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, card)}
-                                        className='p-2 rounded-lg border border-gray-700 cursor-move'
+                                        className={`bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow ${card.archived ? 'opacity-60 bg-gray-100' : ''}`}
                                     >
                                         <div className='flex items-start justify-between'>
-                                            <h4 className='font-medium flex-1'>{card.title}</h4>
+                                            <h4 className='font-medium flex-1 flex items-center gap-2'>
+                                                {card.archived && <Archive className='h-3 w-3 text-gray-400' />}
+                                                {card.title}
+                                            </h4>
                                             <div className='flex gap-1'>
                                                 <button
                                                     onClick={() => setEditingCard(card)}
@@ -495,6 +647,23 @@ export default function BoardPage() {
                                                 >
                                                     <Edit2 className='h-3 w-3' />
                                                 </button>
+                                                {card.archived ? (
+                                                    <button
+                                                        onClick={() => restoreCard(card.id, column.id)}
+                                                        className='p-1 rounded hover:bg-green-100 text-green-600'
+                                                        title='Restore card'
+                                                    >
+                                                        <RefreshCw className='h-3 w-3' />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => archiveCard(card.id, column.id)}
+                                                        className='p-1 rounded hover:bg-indigo-100 text-indigo-600'
+                                                        title='Archive card'
+                                                    >
+                                                        <Archive className='h-3 w-3' />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => deleteCard(card.id, column.id)}
                                                     className='p-1 rounded hover:bg-red-100 text-red-600'
@@ -505,55 +674,47 @@ export default function BoardPage() {
                                             </div>
                                         </div>
                                         {card.description && (
-                                            <p className='text-sm text-gray-600 mt-1'>{card.description}</p>
+                                            <Markdown content={card.description} className='text-sm mt-1' />
                                         )}
-                                        {card.due_date && (
-                                            <p className='text-xs text-gray-500 mt-2'>Due: {new Date(card.due_date).toLocaleDateString()}</p>
-                                        )}
+                                        <div className='flex items-center gap-3 mt-2'>
+                                            {card.due_date && (
+                                                <p className='text-xs text-gray-500'>Due: {new Date(card.due_date).toLocaleDateString()}</p>
+                                            )}
+                                            {(card.attachmentCount || 0) > 0 && (
+                                                <div className='flex items-center gap-1 text-gray-400' title={`${card.attachmentCount} attachments`}>
+                                                    <Paperclip className='h-3 w-3' />
+                                                    <span className='text-xs'>{card.attachmentCount}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            {isAddingCard === column.id ? (
-                                <div className='space-y-2'>
-                                    <input
-                                        type='text'
-                                        placeholder='Card title'
-                                        value={newCardTitle}
-                                        onChange={(e) => setNewCardTitle(e.target.value)}
-                                        className='w-full p-2 border border-gray-300 rounded'
-                                        autoFocus
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') {
-                                                createCard(column.id);
-                                            }
-                                        }}
-                                    />
-                                    <div className='flex gap-2'>
-                                        <button
-                                            onClick={() => createCard(column.id)}
-                                            className='flex-1 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600'
-                                        >
-                                            Add
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setIsAddingCard(null);
-                                                setNewCardTitle("");
+                            {!column.archived && (
+                                isAddingCard === column.id ? (
+                                    <div className='space-y-2'>
+                                        <input
+                                            type='text'
+                                            placeholder='Card title'
+                                            value={newCardTitle}
+                                            onChange={(e) => setNewCardTitle(e.target.value)}
+                                            className='w-full p-2 border border-gray-300 rounded'
+                                            autoFocus
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') createCard(column.id);
                                             }}
-                                            className='flex-1 bg-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-400'
-                                        >
-                                            Cancel
-                                        </button>
+                                        />
+                                        <div className='flex gap-2'>
+                                            <button onClick={() => createCard(column.id)} className='flex-1 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600' title='Confirm add card'>Add</button>
+                                            <button onClick={() => { setIsAddingCard(null); setNewCardTitle(""); }} className='flex-1 bg-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-400'>Cancel</button>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setIsAddingCard(column.id)}
-                                    className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600 cursor-pointer'
-                                >
-                                    <Plus className='h-4 w-4' />
-                                    <span>Add card</span>
-                                </button>
+                                ) : (
+                                    <button onClick={() => setIsAddingCard(column.id)} className='flex items-center justify-center gap-2 p-2 rounded hover:bg-gray-200 text-gray-600'>
+                                        <Plus className='h-4 w-4' />
+                                        <span>Add card</span>
+                                    </button>
+                                )
                             )}
                         </div>
                     ))}
@@ -564,18 +725,16 @@ export default function BoardPage() {
                                 placeholder='Column name'
                                 value={newColumnName}
                                 onChange={(e) => setNewColumnName(e.target.value)}
-                                className='w-full p-2 mb-2 border border-gray-300 rounded'
+                                className='w-full p-2 mb-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none'
                                 autoFocus
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        createColumn();
-                                    }
+                                    if (e.key === 'Enter') createColumn();
                                 }}
                             />
                             <div className='flex gap-2'>
                                 <button
                                     onClick={createColumn}
-                                    className='flex-1 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600'
+                                    className='flex-1 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 font-medium'
                                 >
                                     Add
                                 </button>
@@ -584,7 +743,7 @@ export default function BoardPage() {
                                         setIsAddingColumn(false);
                                         setNewColumnName("");
                                     }}
-                                    className='flex-1 bg-gray-300 px-3 py-2 rounded hover:bg-gray-400 '
+                                    className='flex-1 bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400 font-medium'
                                 >
                                     Cancel
                                 </button>
@@ -605,8 +764,11 @@ export default function BoardPage() {
             {/* Card Edit Modal */}
             {editingCard && (
                 <div className='fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50'>
-                    <div className='bg-white rounded-lg p-6 w-full max-w-2xl'>
-                        <h3 className='text-2xl font-semibold mb-4'>Edit Card</h3>
+                    <div className='bg-white rounded-lg p-6 w-full max-w-2xl text-gray-900 max-h-[90vh] overflow-y-auto'>
+                        <h3 className='text-2xl font-semibold mb-4 flex items-center justify-between'>
+                            Edit Card
+                            {editingCard.archived && <span className='text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded flex items-center gap-1'><Archive className='h-3 w-3'/> Archived</span>}
+                        </h3>
                         <div className='space-y-4'>
                             <div>
                                 <label className='block text-sm font-medium mb-1'>Title</label>
@@ -614,50 +776,60 @@ export default function BoardPage() {
                                     type='text'
                                     value={editingCard.title}
                                     onChange={(e) => setEditingCard({ ...editingCard, title: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded '
+                                    className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none'
                                 />
                             </div>
                             <div>
-                                <label className='block text-sm font-medium mb-1'>Description</label>
-                                <textarea
-                                    value={editingCard.description || ""}
-                                    onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded '
-                                    rows={3}
-                                />
+                                <div className='flex items-center justify-between mb-1'>
+                                    <label htmlFor='card-description' className='block text-sm font-medium'>Description</label>
+                                    <div className='flex border border-gray-300 rounded overflow-hidden text-xs'>
+                                        <button onClick={() => setPreviewDescription(false)} className={`px-2 py-1 ${!previewDescription ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Write</button>
+                                        <button onClick={() => setPreviewDescription(true)} className={`px-2 py-1 ${previewDescription ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Preview</button>
+                                    </div>
+                                </div>
+                                {previewDescription ? (
+                                    <div className='w-full p-2 border border-gray-300 rounded min-h-[5rem] bg-gray-50'><Markdown content={editingCard.description || "*No description*"} /></div>
+                                ) : (
+                                    <textarea id='card-description' value={editingCard.description || ""} onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })} className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none' rows={3} placeholder='Add a description...' />
+                                )}
                             </div>
                             <div>
-                                <label className='block text-sm font-medium mb-1'>Notes</label>
-                                <textarea
-                                    value={editingCard.notes || ""}
-                                    onChange={(e) => setEditingCard({ ...editingCard, notes: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded '
-                                    rows={3}
-                                />
+                                <div className='flex items-center justify-between mb-1'>
+                                    <label htmlFor='card-notes' className='block text-sm font-medium'>Notes</label>
+                                    <div className='flex border border-gray-300 rounded overflow-hidden text-xs'>
+                                        <button onClick={() => setPreviewNotes(false)} className={`px-2 py-1 ${!previewNotes ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Write</button>
+                                        <button onClick={() => setPreviewNotes(true)} className={`px-2 py-1 ${previewNotes ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Preview</button>
+                                    </div>
+                                </div>
+                                {previewNotes ? (
+                                    <div className='w-full p-2 border border-gray-300 rounded min-h-[5rem] bg-gray-50'><Markdown content={editingCard.notes || "*No notes*"} /></div>
+                                ) : (
+                                    <textarea id='card-notes' value={editingCard.notes || ""} onChange={(e) => setEditingCard({ ...editingCard, notes: e.target.value })} className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none' rows={3} placeholder='Add some notes...' />
+                                )}
                             </div>
                             <div>
                                 <label className='block text-sm font-medium mb-1'>Due Date</label>
-                                <input
-                                    type='date'
-                                    value={editingCard.due_date || ""}
-                                    onChange={(e) => setEditingCard({ ...editingCard, due_date: e.target.value })}
-                                    className='w-full p-2 border border-gray-300 rounded '
-                                />
+                                <input type='date' value={editingCard.due_date || ""} onChange={(e) => setEditingCard({ ...editingCard, due_date: e.target.value })} className='w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none' />
+                            </div>
+                            <div>
+                                <label className='block text-sm font-medium mb-2'>Attachments</label>
+                                <div className='space-y-2 mb-3'>
+                                    {attachments.map(att => (
+                                        <div key={att.id} className='flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200 text-sm'>
+                                            <div className='flex items-center gap-2 overflow-hidden'><File className='h-4 w-4 shrink-0 text-gray-400' /><span className='truncate' title={att.name}>{att.name}</span><span className='text-xs text-gray-400 shrink-0'>({(att.size / 1024).toFixed(1)} KB)</span></div>
+                                            <button onClick={() => removeAttachment(att.id)} className='p-1 hover:bg-red-100 text-red-500 rounded' title='Remove attachment'><X className='h-4 w-4' /></button>
+                                        </div>
+                                    ))}
+                                    {attachments.length === 0 && <p className='text-sm text-gray-500 italic'>No attachments yet.</p>}
+                                </div>
+                                <label className='flex items-center justify-center gap-2 p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer group'>
+                                    <Plus className='h-4 w-4 text-gray-400 group-hover:text-blue-500' /><span className='text-sm text-gray-500 group-hover:text-blue-600 font-medium'>Add Attachment</span><input type='file' onChange={handleFileUpload} className='hidden' />
+                                </label>
                             </div>
                         </div>
                         <div className='flex gap-2 mt-6'>
-                            <button
-                                onClick={() => updateCard(editingCard)}
-                                className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
-                            >
-                                Save
-                            </button>
-                            <button
-                                onClick={() => setEditingCard(null)}
-                                className='flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400'
-                            >
-                                Cancel
-                            </button>
+                            <button onClick={() => updateCard(editingCard)} className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'>Save</button>
+                            <button onClick={() => setEditingCard(null)} className='flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400'>Cancel</button>
                         </div>
                     </div>
                 </div>
