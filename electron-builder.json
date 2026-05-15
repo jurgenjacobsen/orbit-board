@@ -7,10 +7,10 @@
     "dist-react"
   ],
   "extraResources": [
-    "dist-electron/preload.cjs",
+    "dist-electron/electron/preload.cjs",
     "src/assets/**"
   ],
-  "icon": "src/assets/icon.png",
+  "icon": "src/assets/icon_rounded.png",
 
   "publish": {
     "provider": "github",
