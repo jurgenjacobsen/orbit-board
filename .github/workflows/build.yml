@@ -28,36 +28,51 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npx eslint . || true # Allow failure for now due to 'any' types
+        run: npx eslint .
 
       - name: Run Unit Tests
         run: npm run test:unit -- --run
 
       - name: Build and Package Mac
         if: matrix.os == 'macos-latest'
-        run: npm run dist:mac
+        run: npm run dist:mac -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Package Windows
         if: matrix.os == 'windows-latest'
-        run: npm run dist:win
+        run: npm run dist:win -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Package Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run dist:linux
+        run: npm run dist:linux -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List dist directory
+        shell: bash
+        run: |
+          if [ -d "dist" ]; then
+            ls -R dist
+          else
+            echo "dist directory does not exist"
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
+          if-no-files-found: warn
           path: |
             dist/*.exe
             dist/*.dmg
             dist/*.AppImage
             dist/*.snap
             dist/*.deb
+            dist/*.msi
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.blockmap
