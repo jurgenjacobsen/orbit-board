@@ -11,6 +11,8 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,12 +29,10 @@ jobs:
       # Build without publishing yet
       - name: Build Package
         run: |
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then npm run dist:mac; fi
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then npm run dist:win; fi
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then npm run dist:linux; fi
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then npm run dist:mac -- --publish never; fi
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then npm run dist:win -- --publish never; fi
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then npm run dist:linux -- --publish never; fi
         shell: bash
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # <--- Add this line
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
