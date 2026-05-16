@@ -53,7 +53,7 @@ export default function ProfilePage() {
     const activeStreak = useMemo(() => {
         const getLocalDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         let streak = 0;
-        let checkDate = new Date();
+        const checkDate = new Date();
         const todayStr = getLocalDateStr(checkDate);
         if (!activityData[todayStr]) {
             checkDate.setDate(checkDate.getDate() - 1);

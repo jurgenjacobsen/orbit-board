@@ -208,7 +208,7 @@ export const mockApi = {
     getAttachments: async (cardId: string): Promise<ApiResult<Attachment[]>> => {
         return { success: true, data: mockAttachments.filter(a => a.card_id === cardId) };
     },
-    addAttachment: async (cardId: string, file: any): Promise<ApiResult<Attachment>> => {
+    addAttachment: async (cardId: string, file: { name: string, path: string, type: string, size: number }): Promise<ApiResult<Attachment>> => {
         const att = { id: crypto.randomUUID(), card_id: cardId, ...file, created_at: new Date().toISOString() };
         mockAttachments.push(att);
         return { success: true, data: att };
@@ -238,20 +238,20 @@ export const mockApi = {
         mockLabels = mockLabels.filter(l => l.id !== id);
         return { success: true };
     },
-    getCardLabels: async (cardId: string): Promise<ApiResult<Label[]>> => {
+    getCardLabels: async (_cardId: string): Promise<ApiResult<Label[]>> => {
         return { success: true, data: [] };
     },
-    addLabelToCard: async (cardId: string, labelId: string): Promise<ApiResult<void>> => {
+    addLabelToCard: async (_cardId: string, _labelId: string): Promise<ApiResult<void>> => {
         return { success: true };
     },
-    removeLabelFromCard: async (cardId: string, labelId: string): Promise<ApiResult<void>> => {
+    removeLabelFromCard: async (_cardId: string, _labelId: string): Promise<ApiResult<void>> => {
         return { success: true };
     },
 
-    getSetting: async (key: string): Promise<ApiResult<string | null>> => {
+    getSetting: async (_key: string): Promise<ApiResult<string | null>> => {
         return { success: true, data: null };
     },
-    setSetting: async (key: string, value: string): Promise<ApiResult<void>> => {
+    setSetting: async (_key: string, _value: string): Promise<ApiResult<void>> => {
         return { success: true };
     },
     exportData: async (): Promise<ApiResult<string>> => {
@@ -307,7 +307,7 @@ export const mockApi = {
             data: { name: 'Demo User', username: 'demo_user', avatar: '', bio: 'Software Engineer & Productivity enthusiast.' } 
         };
     },
-    updateUserProfile: async (profile: UserProfile): Promise<ApiResult<void>> => {
+    updateUserProfile: async (_profile: UserProfile): Promise<ApiResult<void>> => {
         return { success: true };
     },
     getActivityStats: async (): Promise<ApiResult<{ [date: string]: number }>> => {

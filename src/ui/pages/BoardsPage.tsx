@@ -17,7 +17,7 @@ export default function BoardsPage() {
 
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<Card[]>([]);
+    const [searchResults, setSearchResults] = useState<(Card & { board_id?: string })[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [includeArchived, setIncludeArchived] = useState(false);
 
@@ -122,7 +122,7 @@ export default function BoardsPage() {
             const api = getApi();
             const result = await api.searchCards(query);
             if (result.success && result.data) {
-                setSearchResults(result.data as (Card & { board_id: string })[]);
+                setSearchResults(result.data as (Card & { board_id?: string })[]);
             }
         } catch (error) {
             console.error("Search failed:", error);
@@ -153,7 +153,7 @@ export default function BoardsPage() {
                 description: newBoardDescription || null,
             };
 
-            const result = await api.createBoard(board as any);
+            const result = await api.createBoard(board as Board);
             if (result.success) {
                 await loadBoards();
                 setIsCreating(false);
@@ -196,7 +196,7 @@ export default function BoardsPage() {
                             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                                 {searchResults.map(card => (
                                     <Link
-                                        to={`/board/${(card as any).board_id || 'unknown'}`}
+                                        to={`/board/${card.board_id || 'unknown'}`}
                                         key={card.id}
                                         className='block'
                                     >

@@ -9,7 +9,13 @@ import SettingsPage from './pages/SettingsPage.tsx';
 import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 
-function Sidebar({ isExpanded, toggleSidebar, navLinks }: { isExpanded: boolean; toggleSidebar: () => void, navLinks: any[] }) {
+interface NavLink {
+    to: string;
+    label: string;
+    icon: React.ElementType;
+}
+
+function Sidebar({ isExpanded, toggleSidebar, navLinks }: { isExpanded: boolean; toggleSidebar: () => void, navLinks: NavLink[] }) {
     const location = useLocation();
     const navigate = useNavigate();
 

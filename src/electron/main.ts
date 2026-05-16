@@ -785,7 +785,7 @@ app.on('ready', async () => {
                     boardName: board.name,
                     boardId: board.id
                 };
-            }).filter(c => c !== null) as any[];
+            }).filter((c): c is (Card & { columnName: string; boardName: string; boardId: string }) => c !== null);
 
             // Upcoming Cards (due today or in next 7 days)
             const upcoming = enrichedCards
@@ -850,7 +850,7 @@ app.on('ready', async () => {
         try {
             await db.read();
             db.data.labels = db.data.labels.filter((l: Label) => l.id !== id);
-            db.data.card_labels = db.data.card_labels.filter((cl: any) => cl.label_id !== id);
+            db.data.card_labels = db.data.card_labels.filter((cl: CardLabel) => cl.label_id !== id);
             await db.write();
             return { success: true };
         } catch (error: unknown) {
@@ -863,8 +863,8 @@ app.on('ready', async () => {
         try {
             await db.read();
             const labelIds = db.data.card_labels
-                .filter((cl: any) => cl.card_id === cardId)
-                .map((cl: any) => cl.label_id);
+                .filter((cl: CardLabel) => cl.card_id === cardId)
+                .map((cl: CardLabel) => cl.label_id);
             const labels = db.data.labels.filter((l: Label) => labelIds.includes(l.id));
             return { success: true, data: labels };
         } catch (error: unknown) {
@@ -877,7 +877,7 @@ app.on('ready', async () => {
             await db.read();
             // Check if it already exists
             const exists = db.data.card_labels.some(
-                (cl: any) => cl.card_id === cardId && cl.label_id === labelId
+                (cl: CardLabel) => cl.card_id === cardId && cl.label_id === labelId
             );
             if (!exists) {
                 db.data.card_labels.push({ card_id: cardId, label_id: labelId });
@@ -893,7 +893,7 @@ app.on('ready', async () => {
         try {
             await db.read();
             db.data.card_labels = db.data.card_labels.filter(
-                (cl: any) => !(cl.card_id === cardId && cl.label_id === labelId)
+                (cl: CardLabel) => !(cl.card_id === cardId && cl.label_id === labelId)
             );
             await db.write();
             return { success: true };
@@ -1054,7 +1054,7 @@ app.on('ready', async () => {
             await db.read();
             const stats: { [date: string]: number } = {};
             
-            const addDate = (dateStr: any) => {
+            const addDate = (dateStr: string | null | undefined) => {
                 if (!dateStr || typeof dateStr !== 'string') return;
                 try {
                     const d = new Date(dateStr);
@@ -1062,7 +1062,7 @@ app.on('ready', async () => {
                     // Use local date for the heatmap keys to match user's perspective
                     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                     stats[dateKey] = (stats[dateKey] || 0) + 1;
-                } catch (e) {
+                } catch {
                     // Ignore invalid dates
                 }
             };

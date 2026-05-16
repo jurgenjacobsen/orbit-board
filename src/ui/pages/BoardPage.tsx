@@ -133,7 +133,7 @@ export default function BoardPage() {
                 (card.notes && card.notes.toLowerCase().includes(query));
 
             const matchesLabels = filterLabels.length === 0 ||
-                filterLabels.every(labelId => (card as any).labelIds?.includes(labelId));
+                filterLabels.every(labelId => (card as Card & { labelIds?: string[] }).labelIds?.includes(labelId));
 
             let matchesDueSoon = true;
             if (filterDueSoon) {
@@ -166,7 +166,7 @@ export default function BoardPage() {
             const api = getApi();
             const fileData = {
                 name: file.name,
-                path: (file as any).path || file.name,
+                path: (file as File & { path?: string }).path || file.name,
                 type: file.type,
                 size: file.size,
             };

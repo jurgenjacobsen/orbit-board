@@ -1,14 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, Trash2, Layout, Columns, CheckSquare, X, RotateCcw } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { getApi } from "../utils/mockApi";
-import type { Board, Column, Card } from "../../types";
+import type { Board } from "../../types";
 
 export default function RecycleBinPage() {
-    const navigate = useNavigate();
     const [deletedBoards, setDeletedBoards] = useState<Board[]>([]);
-    const [deletedColumns, setDeletedColumns] = useState<Column[]>([]);
-    const [deletedCards, setDeletedCards] = useState<Card[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedBoardIds, setSelectedBoardIds] = useState<string[]>([]);

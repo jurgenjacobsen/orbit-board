@@ -1,10 +1,10 @@
 import { expect, Mock, test, vi } from 'vitest';
 import { createTray } from './tray.js';
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, Menu, Tray, MenuItem } from 'electron';
 
 vi.mock('electron', () => {
     return {
-        Tray: vi.fn().mockImplementation(function(this: any) {
+        Tray: vi.fn().mockImplementation(function(this: Tray) {
             this.setContextMenu = vi.fn();
             this.on = vi.fn();
         }),
@@ -21,21 +21,21 @@ vi.mock('electron', () => {
 
 const mainWindow = {
     show: vi.fn(),
-} satisfies Partial<BrowserWindow> as any as BrowserWindow;
+} satisfies Partial<BrowserWindow> as unknown as BrowserWindow;
 
 test('', () => {
     createTray(mainWindow);
 
-    const calls = (Menu.buildFromTemplate as any as Mock).mock.calls;
+    const calls = (Menu.buildFromTemplate as unknown as Mock).mock.calls;
     const args = calls[0] as Parameters<typeof Menu.buildFromTemplate>;
     const template = args[0];
     expect(template).toHaveLength(4);
 
     expect(template[2].label).toEqual('Show');
-    template[2]?.click?.(null as any, null as any, null as any);
+    template[2]?.click?.({} as MenuItem, undefined, {} as Electron.KeyboardEvent);
     expect(mainWindow.show).toHaveBeenCalled();
     expect(app.dock?.show).toHaveBeenCalled();
 
-    template[3]?.click?.(null as any, null as any, null as any);
+    template[3]?.click?.({} as MenuItem, undefined, {} as Electron.KeyboardEvent);
     expect(app.quit).toHaveBeenCalled();
 });
