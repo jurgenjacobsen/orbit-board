@@ -24,6 +24,7 @@
 
 ## 4. System Integrations
 - [x] **Discord Rich Presence**: Integrate with Discord to show current board activity in the user's status.
+- [ ] **Discord Settings**: Add a setting option to enable/disable Discord Rich Presence and allow users to customize the activity details (e.g., showing board name, card title, etc.).
 - [ ] **Installer Builds/Updates**: Rework the installer builds to support multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms.
 
 ## 4.1. Advanced System Integrations
