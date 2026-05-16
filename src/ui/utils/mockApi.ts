@@ -322,6 +322,12 @@ export const mockApi = {
             }
         }
         return { success: true, data: stats };
+    },
+    setDiscordActivity: async (details: string, state: string): Promise<void> => {
+        console.log(`[Mock Discord] Setting activity: ${details} - ${state}`);
+    },
+    clearDiscordActivity: async (): Promise<void> => {
+        console.log(`[Mock Discord] Clearing activity`);
     }
 };
 

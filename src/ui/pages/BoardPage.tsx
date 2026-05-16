@@ -4,10 +4,12 @@ import { Plus, ArrowLeft, Trash2, Edit2, Save, Paperclip, File, X, Filter, Searc
 import { getApi } from "../utils/mockApi";
 import type { Board, Column, Card, Attachment, Label } from "../../types";
 import Markdown from "../components/Markdown";
+import { useConfirm } from "../hooks/useConfirm";
 
 export default function BoardPage() {
     const { boardId } = useParams<{ boardId: string }>();
     const navigate = useNavigate();
+    const confirm = useConfirm();
     const [board, setBoard] = useState<Board | null>(null);
     const [columns, setColumns] = useState<Column[]>([]);
     const [cards, setCards] = useState<{ [columnId: string]: Card[] }>({});
@@ -90,6 +92,12 @@ export default function BoardPage() {
             console.error("Failed to load board:", error);
         }
     }, [boardId]);
+
+    useEffect(() => {
+        if (board) {
+            getApi().setDiscordActivity(`Working on Board`, board.name);
+        }
+    }, [board]);
 
     useEffect(() => {
         if (boardId) {
@@ -182,7 +190,12 @@ export default function BoardPage() {
     };
 
     const removeAttachment = async (id: string) => {
-        if (!confirm("Are you sure you want to remove this attachment?")) return;
+        const confirmed = await confirm({
+            title: "Remove Attachment",
+            message: "Are you sure you want to remove this attachment?",
+            isDanger: true
+        });
+        if (!confirmed) return;
         try {
             const api = getApi();
             const result = await api.removeAttachment(id);
@@ -217,7 +230,12 @@ export default function BoardPage() {
     };
 
     const deleteColumn = async (columnId: string) => {
-        if (!confirm("Are you sure you want to delete this column? All cards in it will be moved to the recycle bin.")) return;
+        const confirmed = await confirm({
+            title: "Delete Column",
+            message: "Are you sure you want to delete this column? All cards in it will be moved to the recycle bin.",
+            isDanger: true
+        });
+        if (!confirmed) return;
         try {
             const api = getApi();
             const result = await api.deleteColumn(columnId);
@@ -254,7 +272,12 @@ export default function BoardPage() {
     };
 
     const deleteBoard = async (boardId: string) => {
-        if (!confirm("Are you sure you want to delete this board? All columns and cards in it will be moved to the recycle bin.")) return;
+        const confirmed = await confirm({
+            title: "Delete Board",
+            message: "Are you sure you want to delete this board? All columns and cards in it will be moved to the recycle bin.",
+            isDanger: true
+        });
+        if (!confirmed) return;
         try {
             const api = getApi();
             const result = await api.deleteBoard(boardId);
@@ -353,7 +376,12 @@ export default function BoardPage() {
     };
 
     const deleteCard = async (cardId: string, columnId: string) => {
-        if (!confirm("Are you sure you want to delete this card? It will be moved to the recycle bin.")) return;
+        const confirmed = await confirm({
+            title: "Delete Card",
+            message: "Are you sure you want to delete this card? It will be moved to the recycle bin.",
+            isDanger: true
+        });
+        if (!confirmed) return;
         try {
             const api = getApi();
             const result = await api.deleteCard(cardId);
@@ -469,7 +497,7 @@ export default function BoardPage() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setIsFilterVisible(!isFilterVisible)}
-                            className={`p-2 rounded-lg duration-300 transition-colors cursor-pointer flex items-center gap-2 ${isFilterVisible || filterQuery || filterLabels.length > 0 || filterDueSoon || includeArchived ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+                            className={`p-2 rounded-lg duration-300 transition-colors cursor-pointer flex items-center gap-2 ${isFilterVisible || filterQuery || filterLabels.length > 0 || filterDueSoon || includeArchived ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 hover:bg-gray-200'}`}
                             title='Filter cards'
                         >
                             <Filter className='h-5 w-5' />
@@ -528,7 +556,7 @@ export default function BoardPage() {
                                     <button
                                         key={label.id}
                                         onClick={() => toggleFilterLabel(label.id)}
-                                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${filterLabels.includes(label.id) ? 'ring-2 ring-offset-1 ring-blue-400' : 'opacity-60 hover:opacity-100'}`}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${filterLabels.includes(label.id) ? 'ring-2 ring-offset-1 ring-blue-500' : 'opacity-60 hover:opacity-100'}`}
                                         style={{
                                             backgroundColor: label.color + '20',
                                             borderColor: label.color,
@@ -560,7 +588,7 @@ export default function BoardPage() {
                                 else if (draggedColumn) handleColumnDrop(e, column.id);
                             }}
                             className={`shrink-0 w-80 rounded-lg ring-1 ring-gray-700 p-4 flex flex-col transition-opacity duration-200 ${
-                                draggedOverColumn === column.id && draggedCard ? 'bg-blue-100 ' : 'bg-gray-50'
+                                draggedOverColumn === column.id && draggedCard ? 'bg-blue-50 ' : 'bg-gray-50'
                             } ${draggedColumn?.id === column.id ? 'opacity-50 border-dashed border border-indigo-600 ' : ''} ${column.archived ? 'opacity-60 bg-gray-200' : ''}`}
                         >
                             <div className='flex items-center justify-between mb-4 min-h-8 cursor-grab active:cursor-grabbing'>
@@ -823,7 +851,7 @@ export default function BoardPage() {
                                     {attachments.length === 0 && <p className='text-sm text-gray-500 italic'>No attachments yet.</p>}
                                 </div>
                                 <label className='flex items-center justify-center gap-2 p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer group'>
-                                    <Plus className='h-4 w-4 text-gray-400 group-hover:text-blue-500' /><span className='text-sm text-gray-500 group-hover:text-blue-600 font-medium'>Add Attachment</span><input type='file' onChange={handleFileUpload} className='hidden' />
+                                    <Plus className='h-4 w-4 text-gray-400 group-hover:text-blue-600' /><span className='text-sm text-gray-500 group-hover:text-blue-600 font-medium'>Add Attachment</span><input type='file' onChange={handleFileUpload} className='hidden' />
                                 </label>
                             </div>
                         </div>

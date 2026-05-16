@@ -11,68 +11,56 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npx eslint .
-
-      - name: Run Unit Tests
-        run: npm run test:unit -- --run
-
-      - name: Build and Package Mac
-        if: matrix.os == 'macos-latest'
-        run: npm run dist:mac -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Package Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run dist:win -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Package Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run dist:linux -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: List dist directory
-        shell: bash
+      - name: Install and Test
         run: |
-          if [ -d "dist" ]; then
-            ls -R dist
-          else
-            echo "dist directory does not exist"
-          fi
+          npm ci
+          npx eslint .
+          npm run test:unit -- --run
+
+      # Build without publishing yet
+      - name: Build Package
+        run: |
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then npm run dist:mac; fi
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then npm run dist:win; fi
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then npm run dist:linux; fi
+        shell: bash
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
-          if-no-files-found: warn
-          path: |
-            dist/*.exe
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.snap
-            dist/*.deb
-            dist/*.msi
-            dist/*.zip
-            dist/*.tar.gz
-            dist/*.yml
-            dist/*.blockmap
+          path: dist/
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-installers
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            all-installers/*.exe
+            all-installers/*.dmg
+            all-installers/*.AppImage
+            all-installers/*.msi
+            all-installers/*.yml
+            all-installers/*.blockmap
+          draft: true # Set to false if you want it published immediately
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

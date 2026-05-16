@@ -1,17 +1,38 @@
+import { useEffect } from "react";
 import { getApi } from "../utils/mockApi";
 import { useNavigate } from "react-router-dom";
+import { useConfirm, useAlert } from "../hooks/useConfirm";
 
 export default function SettingsPage() {
     const navigate = useNavigate();
+    const confirm = useConfirm();
+    const alert = useAlert();
+
+    useEffect(() => {
+        getApi().setDiscordActivity('Adjusting Settings', 'Idle');
+    }, []);
+
     const resetApp = async () => {
-        if (confirm("Are you sure you want to reset all application data? This action cannot be undone.")) {
+        const confirmed = await confirm({
+            title: "Reset Application",
+            message: "Are you sure you want to reset all application data? This action cannot be undone.",
+            isDanger: true
+        });
+        if (confirmed) {
             const api = getApi();
             const result = await api.resetApplication();
             if (result.success) {
-                alert("Application data has been reset.");
+                await alert({
+                    title: "Success",
+                    message: "Application data has been reset."
+                });
                 navigate("/");
             } else {
-                alert("Failed to reset application data.");
+                await alert({
+                    title: "Error",
+                    message: "Failed to reset application data.",
+                    isDanger: true
+                });
             }
         }
     };

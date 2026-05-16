@@ -9,6 +9,7 @@ import type { Board, Column, Card, Label, Setting, CardLabel, Attachment, UserPr
 import type { LowDatabase } from './database.js';
 import { initDatabase } from './database.js';
 import fs from 'fs';
+import { initDiscordRPC, setActivity, clearActivity } from './discord.js';
 
 const notificationTimeouts: NodeJS.Timeout[] = [];
 
@@ -42,7 +43,7 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
                 const notification = new Notification({
                     title: isOverdue ? '⚠️ Task Overdue!' : '⏰ Task Due Soon!',
                     body: `"${card.title}" on board "${card.board_name}" is ${isOverdue ? 'overdue' : 'due within 24 hours'}`,
-                    icon: path.join(app.getAppPath(), isDev() ? '.' : '..', '/src/assets/icon.png')
+                    icon: path.join(app.getAppPath(), isDev() ? '.' : '..', '/src/assets/icon_rounded.png')
                 });
 
                 notification.on('click', () => {
@@ -71,21 +72,21 @@ async function purgeRecycleBin(db: LowDatabase) {
 
         // Purge Boards
         const originalBoardCount = db.data.boards.length;
-        db.data.boards = db.data.boards.filter((b: Board) => 
+        db.data.boards = db.data.boards.filter((b: Board) =>
             !b.deleted_at || new Date(b.deleted_at).getTime() > cutoff
         );
         if (db.data.boards.length !== originalBoardCount) changed = true;
 
         // Purge Columns
         const originalColumnCount = db.data.columns.length;
-        db.data.columns = db.data.columns.filter((c: Column) => 
+        db.data.columns = db.data.columns.filter((c: Column) =>
             !c.deleted_at || new Date(c.deleted_at).getTime() > cutoff
         );
         if (db.data.columns.length !== originalColumnCount) changed = true;
 
         // Purge Cards
         const originalCardCount = db.data.cards.length;
-        db.data.cards = db.data.cards.filter((c: Card) => 
+        db.data.cards = db.data.cards.filter((c: Card) =>
             !c.deleted_at || new Date(c.deleted_at).getTime() > cutoff
         );
         if (db.data.cards.length !== originalCardCount) changed = true;
@@ -138,6 +139,17 @@ app.on('ready', async () => {
     });
 
     autoUpdater.checkForUpdatesAndNotify();
+
+    // Discord RPC
+    initDiscordRPC();
+
+    ipcMain.handle('discord:setActivity', (_event, details: string, state: string) => {
+        setActivity(details, state);
+    });
+
+    ipcMain.handle('discord:clearActivity', () => {
+        clearActivity();
+    });
 
     // Database IPC Handlers
     // Get all boards
@@ -316,7 +328,7 @@ app.on('ready', async () => {
             if (permanent) {
                 const idSet = new Set(ids);
                 db.data.boards = db.data.boards.filter((b: Board) => !idSet.has(b.id));
-                
+
                 const columnIds = new Set<string>();
                 db.data.columns = db.data.columns.filter((c: Column) => {
                     if (idSet.has(c.board_id)) {
@@ -325,9 +337,9 @@ app.on('ready', async () => {
                     }
                     return true;
                 });
-                
+
                 db.data.cards = db.data.cards.filter((c: Card) => !columnIds.has(c.column_id));
-                
+
                 const labelIds = new Set<string>();
                 db.data.labels = db.data.labels.filter((l: Label) => {
                     if (idSet.has(l.board_id)) {
@@ -336,7 +348,7 @@ app.on('ready', async () => {
                     }
                     return true;
                 });
-                
+
                 db.data.card_labels = db.data.card_labels.filter((cl: CardLabel) => !labelIds.has(cl.label_id));
             } else {
                 for (const id of ids) {
@@ -358,7 +370,7 @@ app.on('ready', async () => {
     ipcMain.handle('db:emptyRecycleBin', async () => {
         try {
             await db.read();
-            
+
             // Boards in recycle bin
             const deletedBoardIds = new Set(
                 db.data.boards.filter(b => b.deleted_at).map(b => b.id)
@@ -382,7 +394,7 @@ app.on('ready', async () => {
             // 3. Permanently delete cards that are either:
             //    a) marked as deleted themselves
             //    b) belong to a column that was deleted
-            db.data.cards = db.data.cards.filter(c => 
+            db.data.cards = db.data.cards.filter(c =>
                 !c.deleted_at && !deletedColumnIds.has(c.column_id)
             );
 
@@ -676,13 +688,13 @@ app.on('ready', async () => {
         try {
             await db.read();
             const lowerQuery = query.toLowerCase();
-            
+
             // Find labels that match the query
-            const matchingLabels = db.data.labels.filter((l: Label) => 
+            const matchingLabels = db.data.labels.filter((l: Label) =>
                 l.name.toLowerCase().includes(lowerQuery)
             );
             const matchingLabelIds = new Set(matchingLabels.map((l: Label) => l.id));
-            
+
             // Find card IDs associated with those labels
             const cardIdsFromLabels = new Set(
                 db.data.card_labels
@@ -765,7 +777,7 @@ app.on('ready', async () => {
             await db.read();
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
 
@@ -776,7 +788,7 @@ app.on('ready', async () => {
             const enrichedCards = allCards.map((card: Card) => {
                 const column = db.data.columns.find((col: Column) => col.id === card.column_id);
                 const board = column ? db.data.boards.find((b: Board) => b.id === column.board_id) : null;
-                
+
                 if (!column || !board) return null;
 
                 return {
@@ -1023,9 +1035,9 @@ app.on('ready', async () => {
             if (profileSetting) {
                 return { success: true, data: JSON.parse(profileSetting.value) as UserProfile };
             }
-            return { 
-                success: true, 
-                data: { name: 'User Name', username: 'username', avatar: '' } as UserProfile 
+            return {
+                success: true,
+                data: { name: 'User Name', username: 'username', avatar: '' } as UserProfile
             };
         } catch (error: unknown) {
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -1053,7 +1065,7 @@ app.on('ready', async () => {
         try {
             await db.read();
             const stats: { [date: string]: number } = {};
-            
+
             const addDate = (dateStr: string | null | undefined) => {
                 if (!dateStr || typeof dateStr !== 'string') return;
                 try {

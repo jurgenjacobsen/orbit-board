@@ -61,5 +61,9 @@ contextBridge.exposeInMainWorld('api', {
   getOverviewData: () => ipcRenderer.invoke('db:getOverviewData'),
   getUserProfile: () => ipcRenderer.invoke('db:getUserProfile'),
   updateUserProfile: (profile: any) => ipcRenderer.invoke('db:updateUserProfile', profile),
-  getActivityStats: () => ipcRenderer.invoke('db:getActivityStats')
+  getActivityStats: () => ipcRenderer.invoke('db:getActivityStats'),
+
+  // Discord RPC
+  setDiscordActivity: (details: string, state: string) => ipcRenderer.invoke('discord:setActivity', details, state),
+  clearDiscordActivity: () => ipcRenderer.invoke('discord:clearActivity')
 } satisfies Window['api']);

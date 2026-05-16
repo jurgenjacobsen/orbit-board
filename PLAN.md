@@ -20,16 +20,16 @@
 - [x] **Sidebar Current Position**: Highlighting: Highlight the current board in the sidebar for better navigation context.
 
 ## 3.1 UI Rework Details
-- [ ] **Custom Modals**: Replace native `window.prompt` and `window.confirm` dialogs with custom-styled modals that match the app's design language.
-- [ ] **Customizable Themes**: Expand beyond simple Dark/Light mode to allow custom accent colors or board background images.
+- [x] **Custom Modals**: Replace native `window.prompt` and `window.confirm` dialogs with custom-styled modals that match the app's design language.
 
 ## 4. System Integrations
+- [x] **Discord Rich Presence**: Integrate with Discord to show current board activity in the user's status.
 - [ ] **Installer Builds/Updates**: Rework the installer builds to support multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms.
-- [ ] **Discord Rich Presence**: Integrate with Discord to show current board activity in the user's status.
 
 ## 4.1. Advanced System Integrations
 - [ ] **Localization (i18n)**: Prepare the app for multiple languages to expand user base.
 - [ ] **Calendar Integration**: Export due dates to a `.ics` feed or sync directly with Google Calendar/Outlook.
+- [ ] **Tray**: Add a setting to choose whether the app closes to the system tray instead of actual closing, and allow quick access to boards from the tray icon context menu.
 - [ ] **System Startup**: Add a setting to launch the application minimized in the tray on system startup.
 - [ ] **Notifications**: Implement desktop notifications for upcoming due dates or card assignments.
 

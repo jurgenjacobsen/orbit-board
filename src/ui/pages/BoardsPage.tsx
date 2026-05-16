@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { getApi } from "../utils/mockApi";
 import type { Board, Card } from "../../types";
+import { useConfirm } from "../hooks/useConfirm";
 
 export default function BoardsPage() {
+    const confirm = useConfirm();
     const [boards, setBoards] = useState<Board[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newBoardName, setNewBoardName] = useState("");
@@ -97,7 +99,12 @@ export default function BoardsPage() {
     const deleteBoard = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this board? It will be moved to the recycle bin.")) return;
+        const confirmed = await confirm({
+            title: "Delete Board",
+            message: "Are you sure you want to delete this board? It will be moved to the recycle bin.",
+            isDanger: true
+        });
+        if (!confirmed) return;
         try {
             const api = getApi();
             const result = await api.deleteBoard(id);
@@ -132,6 +139,10 @@ export default function BoardsPage() {
     useEffect(() => {
         loadBoards();
     }, [loadBoards]);
+
+    useEffect(() => {
+        getApi().setDiscordActivity('Browsing Boards', 'Idle');
+    }, []);
 
     const filteredBoards = boards
         .filter(b => includeArchived || !b.archived)
@@ -291,20 +302,20 @@ export default function BoardsPage() {
                                     placeholder='Board Name'
                                     value={editBoardName}
                                     onChange={(e) => setEditBoardName(e.target.value)}
-                                    className='w-full p-2 mb-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
+                                    className='w-full p-2 mb-2 border border-blue-400 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
                                     autoFocus
                                 />
                                 <textarea
                                     placeholder='Description (optional)'
                                     value={editBoardDescription}
                                     onChange={(e) => setEditBoardDescription(e.target.value)}
-                                    className='w-full p-2 mb-4 border border-blue-300 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
+                                    className='w-full p-2 mb-4 border border-blue-400 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
                                     rows={3}
                                 />
                                 <div className='flex gap-2'>
                                     <button
                                         onClick={updateBoard}
-                                        className='flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium'
+                                        className='flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium'
                                     >
                                         Save
                                     </button>
@@ -332,7 +343,7 @@ export default function BoardsPage() {
                                     </div>
                                 )}
                                 <div className='flex flex-col h-full'>
-                                    <h4 className='text-xl font-bold mb-2 group-hover:text-blue-500 transition-colors'>{board.name}</h4>
+                                    <h4 className='text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors'>{board.name}</h4>
                                     <p className='text-gray-600 mb-4 line-clamp-3 flex-1'>{board.description || "No description provided."}</p>
                                     <div className='flex items-center justify-between mt-auto pt-4 border-t border-gray-100'>
                                         <p className='text-xs text-gray-400'>Updated {new Date(board.updated_at).toLocaleDateString()}</p>

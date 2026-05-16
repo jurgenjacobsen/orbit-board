@@ -46,6 +46,10 @@ export default function ProfilePage() {
         loadData();
     }, [loadData]);
 
+    useEffect(() => {
+        getApi().setDiscordActivity('Viewing Profile', 'Idle');
+    }, []);
+
     const totalContributions = useMemo(() => {
         return Object.values(activityData).reduce((sum, count) => sum + count, 0);
     }, [activityData]);
@@ -220,7 +224,7 @@ export default function ProfilePage() {
                     <div className='lg:col-span-1 space-y-6'>
                         <div className='bg-white p-6 rounded-xl border border-gray-300 shadow-sm flex flex-col items-center text-center'>
                             <div className='relative mb-4 group'>
-                                <div className='w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-md'>
+                                <div className='w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-md'>
                                     {profile.name?.charAt(0) || 'U'}
                                 </div>
                             </div>
@@ -278,21 +282,21 @@ export default function ProfilePage() {
                         {renderHeatmap()}
 
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='bg-blue-500 p-6 rounded-xl text-white shadow-xl flex items-center gap-4'>
+                            <div className='p-6 rounded-xl shadow-sm bg-white border border-gray-300 flex items-center gap-4'>
                                 <div className='p-3 bg-white/20 rounded-xl'>
                                     <Calendar className='h-8 w-8' />
                                 </div>
                                 <div>
-                                    <p className='text-blue-100 text-sm font-medium'>Total Contributions</p>
+                                    <p className='text-sm font-medium'>Total Contributions</p>
                                     <h4 className='text-3xl font-black'>{totalContributions}</h4>
                                 </div>
                             </div>
-                            <div className='bg-green-600 p-6 rounded-xl text-white shadow-xl border border-gray-300 flex items-center gap-4'>
+                            <div className='p-6 rounded-xl shadow-sm bg-white border border-gray-300 flex items-center gap-4'>
                                 <div className='p-3 bg-white/20 rounded-xl'>
                                     <CheckCircle2 className='h-8 w-8' />
                                 </div>
                                 <div>
-                                    <p className='text-green-100 text-sm font-medium'>Active Streak</p>
+                                    <p className='text-sm font-medium'>Active Streak</p>
                                     <h4 className='text-3xl font-black'>{activeStreak} Days</h4>
                                 </div>
                             </div>

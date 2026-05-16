@@ -30,6 +30,10 @@ export default function OverviewPage() {
     }, []);
 
     useEffect(() => {
+        getApi().setDiscordActivity('Browsing Overview', 'Idle');
+    }, []);
+
+    useEffect(() => {
         loadOverviewData();
     }, [loadOverviewData]);
 
@@ -63,7 +67,7 @@ export default function OverviewPage() {
                             {/* Upcoming Tasks */}
                             <section>
                                 <h3 className='text-2xl font-bold mb-6 flex items-center gap-3 text-gray-800'>
-                                    <Calendar className='h-6 w-6 text-blue-500' />
+                                    <Calendar className='h-6 w-6 text-blue-600' />
                                     Upcoming Due Dates
                                 </h3>
                                 <div className='space-y-4 border border-gray-300 rounded-xl p-4 bg-gray-50 h-100 overflow-y-auto overflow-x-hidden'>
@@ -76,7 +80,7 @@ export default function OverviewPage() {
                                             >
                                                 <div className='flex justify-between items-start mb-2'>
                                                     <h4 className='font-bold text-lg text-gray-900'>{card.title}</h4>
-                                                    <span className={`text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 ${isOverdue(card.due_date!) ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'}`}>
+                                                    <span className={`text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 ${isOverdue(card.due_date!) ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-600'}`}>
                                                         {isOverdue(card.due_date!) && <AlertCircle className='h-3 w-3' />}
                                                         {new Date(card.due_date!).toLocaleDateString()}
                                                     </span>
@@ -138,7 +142,7 @@ export default function OverviewPage() {
                         <section className='mt-16 pt-10 border-t border-gray-100'>
                             <h3 className='text-xl font-bold mb-6 text-gray-800'>Quick Actions</h3>
                             <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                                <Link to="/boards" className='p-6 bg-blue-50 text-blue-700 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-blue-100 transition-colors border border-blue-100'>
+                                <Link to="/boards" className='p-6 bg-blue-50 text-blue-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-blue-50 transition-colors border border-blue-200'>
                                     <Layout className='h-8 w-8' />
                                     <span className='font-bold'>Manage Boards</span>
                                 </Link>

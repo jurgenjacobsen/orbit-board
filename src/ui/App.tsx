@@ -8,6 +8,7 @@ import BoardPage from './pages/BoardPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
+import { ConfirmProvider } from './hooks/useConfirm.tsx';
 
 interface NavLink {
     to: string;
@@ -129,21 +130,23 @@ function App() {
     ];
 
     return (
-        <Router>
-            <div className={` text-gray-900 bg-gray-50 min-h-screen`}>
-                <Sidebar isExpanded={isExpanded} toggleSidebar={() => setIsExpanded(!isExpanded)} navLinks={navLinks} />
-                <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 pt-4`}>
-                    <Routes>
-                        <Route path='/' element={<OverviewPage />} />
-                        <Route path='/boards' element={<BoardsPage />} />
-                        <Route path='/board/:boardId' element={<BoardPage />} />
-                        <Route path='/recycle-bin' element={<RecycleBinPage />} />
-                        <Route path='/profile' element={<ProfilePage />} />
-                        <Route path='/settings' element={<SettingsPage />} />
-                    </Routes>
-                </main>
-            </div>
-        </Router>
+        <ConfirmProvider>
+            <Router>
+                <div className={` text-gray-900 bg-gray-50 min-h-screen`}>
+                    <Sidebar isExpanded={isExpanded} toggleSidebar={() => setIsExpanded(!isExpanded)} navLinks={navLinks} />
+                    <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 pt-4`}>
+                        <Routes>
+                            <Route path='/' element={<OverviewPage />} />
+                            <Route path='/boards' element={<BoardsPage />} />
+                            <Route path='/board/:boardId' element={<BoardPage />} />
+                            <Route path='/recycle-bin' element={<RecycleBinPage />} />
+                            <Route path='/profile' element={<ProfilePage />} />
+                            <Route path='/settings' element={<SettingsPage />} />
+                        </Routes>
+                    </main>
+                </div>
+            </Router>
+        </ConfirmProvider>
     );
 }
 

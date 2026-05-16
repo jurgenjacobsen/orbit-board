@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, Trash2, Layout, Columns, CheckSquare, X, RotateCcw } from "lucide-react";
 import { getApi } from "../utils/mockApi";
 import type { Board } from "../../types";
+import { useConfirm } from "../hooks/useConfirm";
 
 export default function RecycleBinPage() {
+    const confirm = useConfirm();
     const [deletedBoards, setDeletedBoards] = useState<Board[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -30,6 +32,10 @@ export default function RecycleBinPage() {
         loadDeletedItems();
     }, [loadDeletedItems]);
 
+    useEffect(() => {
+        getApi().setDiscordActivity('Managing Recycle Bin', 'Idle');
+    }, []);
+
     const restoreBoard = async (id: string) => {
         try {
             const api = getApi();
@@ -43,7 +49,12 @@ export default function RecycleBinPage() {
     };
 
     const permanentlyDeleteBoard = async (id: string) => {
-        if (!confirm("Are you sure you want to PERMANENTLY delete this board and everything in it? This cannot be undone.")) return;
+        const confirmed = await confirm({
+            title: "Permanently Delete",
+            message: "Are you sure you want to PERMANENTLY delete this board and everything in it? This cannot be undone.",
+            isDanger: true
+        });
+        if (!confirmed) return;
 
         try {
             const api = getApi();
@@ -79,7 +90,12 @@ export default function RecycleBinPage() {
 
     const handleBulkDelete = async () => {
         if (selectedBoardIds.length === 0) return;
-        if (!confirm(`Are you sure you want to PERMANENTLY delete ${selectedBoardIds.length} selected boards? This cannot be undone.`)) return;
+        const confirmed = await confirm({
+            title: "Bulk Delete",
+            message: `Are you sure you want to PERMANENTLY delete ${selectedBoardIds.length} selected boards? This cannot be undone.`,
+            isDanger: true
+        });
+        if (!confirmed) return;
 
         try {
             const api = getApi();
@@ -96,7 +112,12 @@ export default function RecycleBinPage() {
 
     const handleEmptyRecycleBin = async () => {
         if (deletedBoards.length === 0) return;
-        if (!confirm("Are you sure you want to PERMANENTLY delete ALL items in the recycle bin? This cannot be undone.")) return;
+        const confirmed = await confirm({
+            title: "Empty Recycle Bin",
+            message: "Are you sure you want to PERMANENTLY delete ALL items in the recycle bin? This cannot be undone.",
+            isDanger: true
+        });
+        if (!confirmed) return;
 
         try {
             const api = getApi();
@@ -176,7 +197,7 @@ export default function RecycleBinPage() {
             <main className='p-6'>
                 <section>
                     <h3 className='text-xl font-medium mb-4 flex items-center gap-2'>
-                        <Layout className='h-5 w-5 text-blue-500' />
+                        <Layout className='h-5 w-5 text-blue-600' />
                         Deleted Boards
                     </h3>
 
@@ -194,7 +215,7 @@ export default function RecycleBinPage() {
                                             : 'border-gray-200'
                                     } ${
                                         selectedBoardIds.includes(board.id)
-                                            ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50'
+                                            ? 'ring-2 ring-blue-500 border-blue-400 bg-blue-50'
                                             : ''
                                     }`}
                                 >
@@ -205,7 +226,7 @@ export default function RecycleBinPage() {
                                                     type="checkbox"
                                                     checked={selectedBoardIds.includes(board.id)}
                                                     onChange={() => {}} // Handled by parent div
-                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
                                                 />
                                             )}
                                             <h4 className='font-bold text-lg'>{board.name}</h4>

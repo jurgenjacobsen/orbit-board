@@ -51,7 +51,7 @@ test('create and delete a board', async () => {
   await page.getByRole('button', { name: 'Create' }).click();
 
   // Wait for board to appear in the list
-  const boardCard = page.getByText(boardName);
+  const boardCard = page.getByRole('heading', { name: boardName, exact: true });
   await boardCard.waitFor({ state: 'visible', timeout: 10000 });
   await expect(boardCard).toBeVisible();
 
@@ -62,13 +62,13 @@ test('create and delete a board', async () => {
   await expect(page.getByRole('heading', { name: boardName })).toBeVisible();
 
   // Delete the board
-  page.on('dialog', dialog => dialog.accept()); // Handle confirmation dialog
   await page.locator('header').locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
 
   // Verify we are back on Overview page (since navigate('/') is used in deleteBoard)
   await expect(page.getByRole('heading', { name: 'Overview', level: 2 })).toBeVisible();
   await page.getByRole('link', { name: 'Boards', exact: true }).click();
-  await expect(page.getByText(boardName)).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: boardName, exact: true })).not.toBeVisible();
 });
 
 test('column and card operations', async () => {
@@ -81,7 +81,7 @@ test('column and card operations', async () => {
   await page.getByPlaceholder('Board Name').fill(boardName);
   await page.getByRole('button', { name: 'Create' }).click();
 
-  const boardLink = page.getByText(boardName);
+  const boardLink = page.getByRole('heading', { name: boardName, exact: true });
   await boardLink.waitFor({ state: 'visible', timeout: 10000 });
   await boardLink.first().click();
 
@@ -98,7 +98,7 @@ test('column and card operations', async () => {
   const cardTitle = 'E2E Task';
   await page.getByPlaceholder('Card title').fill(cardTitle);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText(cardTitle)).toBeVisible();
+  await expect(page.getByRole('heading', { name: cardTitle, exact: true })).toBeVisible();
 
   // Edit the card
   await page.getByRole('button', { name: 'Edit card' }).first().click();
@@ -107,8 +107,8 @@ test('column and card operations', async () => {
   await expect(page.getByText('E2E Description Update')).toBeVisible();
 
   // Cleanup: delete the board
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('header').locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
 });
 
 test('markdown support in card description', async () => {
@@ -121,7 +121,7 @@ test('markdown support in card description', async () => {
   await page.getByPlaceholder('Board Name').fill(boardName);
   await page.getByRole('button', { name: 'Create' }).click();
 
-  const boardLink = page.getByText(boardName);
+  const boardLink = page.getByRole('heading', { name: boardName, exact: true });
   await boardLink.waitFor({ state: 'visible', timeout: 10000 });
   await boardLink.first().click();
 
@@ -131,6 +131,7 @@ test('markdown support in card description', async () => {
   const cardTitle = 'Markdown Task';
   await page.getByPlaceholder('Card title').fill(cardTitle);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('heading', { name: cardTitle, exact: true })).toBeVisible();
 
   // Edit the card and add Markdown
   await page.getByRole('button', { name: 'Edit card' }).first().click();
@@ -151,8 +152,8 @@ test('markdown support in card description', async () => {
   await expect(page.locator('.prose strong')).toHaveText('Bold');
 
   // Cleanup
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('header').locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
 });
 
 test('search and filtering', async () => {
@@ -166,7 +167,7 @@ test('search and filtering', async () => {
   await page.getByRole('button', { name: 'Create' }).click();
 
   // Wait for board to appear and click it
-  const boardLink = page.getByText(boardName);
+  const boardLink = page.getByRole('heading', { name: boardName, exact: true });
   await boardLink.waitFor({ state: 'visible', timeout: 10000 });
   await boardLink.first().click();
 
@@ -180,13 +181,13 @@ test('search and filtering', async () => {
   // Test Filtering on Board
   await page.getByRole('button', { name: 'Filter' }).click();
   await page.getByPlaceholder('Filter by title or description...').fill('Task');
-  await expect(page.getByText(searchTitle)).toBeVisible();
+  await expect(page.getByRole('heading', { name: searchTitle, exact: true })).toBeVisible();
 
   await page.getByPlaceholder('Filter by title or description...').fill('NothingMatches');
-  await expect(page.getByText(searchTitle)).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: searchTitle, exact: true })).not.toBeVisible();
 
   await page.getByText('Clear all').click();
-  await expect(page.getByText(searchTitle)).toBeVisible();
+  await expect(page.getByRole('heading', { name: searchTitle, exact: true })).toBeVisible();
 
   // Test Global Search on Boards
   await page.locator('button').filter({ has: page.locator('svg.lucide-arrow-left') }).click();
@@ -195,10 +196,10 @@ test('search and filtering', async () => {
 
   await page.getByRole('link', { name: 'Boards', exact: true }).click();
   await page.getByPlaceholder('Global search cards...').fill('Find Me');
-  await expect(page.locator('section').filter({ hasText: 'Search Results' }).getByText(searchTitle).first()).toBeVisible();
+  await expect(page.locator('section').filter({ hasText: 'Search Results' }).getByRole('heading', { name: searchTitle, exact: true }).first()).toBeVisible();
 
   // Cleanup
-  await page.getByText(boardName).first().click(); // Go back to board
-  page.on('dialog', dialog => dialog.accept());
+  await page.getByRole('heading', { name: boardName, exact: true }).first().click(); // Go back to board
   await page.locator('header').locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
 });

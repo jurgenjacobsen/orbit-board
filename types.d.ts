@@ -65,7 +65,11 @@ declare global {
             // Profile & Activity
             getUserProfile: () => Promise<ApiResult<UserProfile>>,
             updateUserProfile: (profile: UserProfile) => Promise<ApiResult<void>>,
-            getActivityStats: () => Promise<ApiResult<{ [date: string]: number }>>
+            getActivityStats: () => Promise<ApiResult<{ [date: string]: number }>>,
+
+            // Discord RPC
+            setDiscordActivity: (details: string, state: string) => Promise<void>,
+            clearDiscordActivity: () => Promise<void>
         }
     }
 }
