@@ -70,13 +70,13 @@ export default function OverviewPage() {
                                     <Calendar className='h-6 w-6 text-blue-600' />
                                     Upcoming Due Dates
                                 </h3>
-                                <div className='space-y-4 border border-gray-300 rounded-xl p-4 bg-gray-50 h-100 overflow-y-auto overflow-x-hidden'>
+                                <div className='space-y-4 border border-gray-300 rounded-lg p-4 bg-gray-50 h-100 overflow-y-auto overflow-x-hidden'>
                                     {data?.upcoming && data.upcoming.length > 0 ? (
                                         data.upcoming.map(card => (
                                             <Link
                                                 key={card.id}
                                                 to={`/board/${card.boardId}`}
-                                                className='block p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow group'
+                                                className='block p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow group'
                                             >
                                                 <div className='flex justify-between items-start mb-2'>
                                                     <h4 className='font-bold text-lg text-gray-900'>{card.title}</h4>
@@ -107,13 +107,13 @@ export default function OverviewPage() {
                                     <Clock className='h-6 w-6 text-purple-500' />
                                     Recent Activity
                                 </h3>
-                                <div className='space-y-4 border border-gray-300 rounded-xl p-4 bg-gray-50 h-100 overflow-y-auto overflow-x-hidden'>
+                                <div className='space-y-4 border border-gray-300 rounded-lg p-4 bg-gray-50 h-100 overflow-y-auto overflow-x-hidden'>
                                     {data?.recent && data.recent.length > 0 ? (
                                         data.recent.map(card => (
                                             <Link
                                                 key={card.id}
                                                 to={`/board/${card.boardId}`}
-                                                className='block p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow group'
+                                                className='block p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow group'
                                             >
                                                 <h4 className='font-bold text-lg text-gray-900 mb-1'>{card.title}</h4>
                                                 <div className='flex items-center justify-between'>

@@ -64,6 +64,13 @@ contextBridge.exposeInMainWorld('api', {
   getActivityStats: () => ipcRenderer.invoke('db:getActivityStats'),
 
   // Discord RPC
-  setDiscordActivity: (details: string, state: string) => ipcRenderer.invoke('discord:setActivity', details, state),
-  clearDiscordActivity: () => ipcRenderer.invoke('discord:clearActivity')
+  setDiscordActivity: (details: string, state: string, context?: any) => ipcRenderer.invoke('discord:setActivity', details, state, context),
+  clearDiscordActivity: () => ipcRenderer.invoke('discord:clearActivity'),
+
+  // Navigation from Tray
+  onNavigate: (callback: (path: string) => void) => {
+    const subscription = (_event: any, path: string) => callback(path);
+    ipcRenderer.on('navigate', subscription);
+    return () => ipcRenderer.removeListener('navigate', subscription);
+  }
 } satisfies Window['api']);

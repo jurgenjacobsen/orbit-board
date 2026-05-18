@@ -26,7 +26,8 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
                 return {
                     ...card,
                     column_name: column?.name,
-                    board_name: board?.name
+                    board_name: board?.name,
+                    board_id: board?.id
                 };
             });
 
@@ -50,6 +51,9 @@ async function checkDueDates(db: LowDatabase, mainWindow: BrowserWindow) {
                     mainWindow.show();
                     if (app.dock) {
                         app.dock.show();
+                    }
+                    if (card.board_id) {
+                        mainWindow.webContents.send('navigate', `/board/${card.board_id}`);
                     }
                 });
 
@@ -104,14 +108,31 @@ app.on('ready', async () => {
     const db = await initDatabase();
     await purgeRecycleBin(db);
 
+    const launchAtStartup = db.data.settings.find(s => s.key === 'launchAtStartup')?.value === 'true';
+    const startMinimized = db.data.settings.find(s => s.key === 'startMinimized')?.value === 'true';
+    const closeToTray = db.data.settings.find(s => s.key === 'closeToTray')?.value === 'true';
+
+    // Set auto-launch
+    if (!isDev()) {
+        app.setLoginItemSettings({
+            openAtLogin: launchAtStartup,
+            args: startMinimized ? ['--minimized'] : []
+        });
+    }
+
     const mainWindow = new BrowserWindow({
         title: 'Orbit Board',
         icon: path.join(app.getAppPath(), '/src/assets/icon.png'),
         autoHideMenuBar: true,
+        show: !startMinimized,
         webPreferences: {
             preload: getPreloadPath(),
         }
     });
+
+    if (startMinimized && app.dock) {
+        app.dock.hide();
+    }
 
     if (isDev()) {
         mainWindow.loadURL('http://localhost:5123');
@@ -119,8 +140,8 @@ app.on('ready', async () => {
         mainWindow.loadFile(path.join(app.getAppPath(), '/dist-react/index.html'))
     }
 
-    createTray(mainWindow);
-    handleCloseEvents(mainWindow);
+    createTray(mainWindow, db);
+    handleCloseEvents(mainWindow, db);
 
     // Check due dates every 30 minutes
     const dueCheckInterval = setInterval(() => {
@@ -141,10 +162,35 @@ app.on('ready', async () => {
     autoUpdater.checkForUpdatesAndNotify();
 
     // Discord RPC
-    initDiscordRPC();
+    const discordEnabled = db.data.settings.find(s => s.key === 'discordEnabled')?.value === 'true';
+    if (discordEnabled) {
+        initDiscordRPC();
+    }
 
-    ipcMain.handle('discord:setActivity', (_event, details: string, state: string) => {
-        setActivity(details, state);
+    ipcMain.handle('discord:setActivity', async (_event, details: string, state: string, context?: { boardName?: string, cardTitle?: string }) => {
+        await db.read();
+        const enabled = db.data.settings.find(s => s.key === 'discordEnabled')?.value === 'true';
+        if (!enabled) {
+            clearActivity();
+            return;
+        }
+
+        const showBoard = db.data.settings.find(s => s.key === 'discordShowBoard')?.value === 'true';
+        const showCard = db.data.settings.find(s => s.key === 'discordShowCard')?.value === 'true';
+
+        let filteredDetails = details;
+        let filteredState = state;
+
+        if (context) {
+            if (context.boardName) {
+                filteredDetails = showBoard ? `Board: ${context.boardName}` : 'Working on a Board';
+            }
+            if (context.cardTitle) {
+                filteredState = showCard ? `Task: ${context.cardTitle}` : 'Working on a Task';
+            }
+        }
+
+        setActivity(filteredDetails, filteredState);
     });
 
     ipcMain.handle('discord:clearActivity', () => {

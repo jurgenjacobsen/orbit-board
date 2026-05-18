@@ -132,21 +132,38 @@ function App() {
     return (
         <ConfirmProvider>
             <Router>
-                <div className={` text-gray-900 bg-gray-50 min-h-screen`}>
-                    <Sidebar isExpanded={isExpanded} toggleSidebar={() => setIsExpanded(!isExpanded)} navLinks={navLinks} />
-                    <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 pt-4`}>
-                        <Routes>
-                            <Route path='/' element={<OverviewPage />} />
-                            <Route path='/boards' element={<BoardsPage />} />
-                            <Route path='/board/:boardId' element={<BoardPage />} />
-                            <Route path='/recycle-bin' element={<RecycleBinPage />} />
-                            <Route path='/profile' element={<ProfilePage />} />
-                            <Route path='/settings' element={<SettingsPage />} />
-                        </Routes>
-                    </main>
-                </div>
+                <AppContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} navLinks={navLinks} />
             </Router>
         </ConfirmProvider>
+    );
+}
+
+function AppContent({ isExpanded, setIsExpanded, navLinks }: { isExpanded: boolean; setIsExpanded: (v: boolean) => void; navLinks: NavLink[] }) {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (window.api?.onNavigate) {
+            const unsubscribe = window.api.onNavigate((path) => {
+                navigate(path);
+            });
+            return () => unsubscribe();
+        }
+    }, [navigate]);
+
+    return (
+        <div className={` text-gray-900 bg-gray-50 min-h-screen`}>
+            <Sidebar isExpanded={isExpanded} toggleSidebar={() => setIsExpanded(!isExpanded)} navLinks={navLinks} />
+            <main className={`h-screen overflow-y-auto ${isExpanded ? 'ml-72' : 'ml-24'} transition-all duration-300 pt-4`}>
+                <Routes>
+                    <Route path='/' element={<OverviewPage />} />
+                    <Route path='/boards' element={<BoardsPage />} />
+                    <Route path='/board/:boardId' element={<BoardPage />} />
+                    <Route path='/recycle-bin' element={<RecycleBinPage />} />
+                    <Route path='/profile' element={<ProfilePage />} />
+                    <Route path='/settings' element={<SettingsPage />} />
+                </Routes>
+            </main>
+        </div>
     );
 }
 

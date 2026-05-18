@@ -188,7 +188,7 @@ export default function BoardsPage() {
                             placeholder='Global search cards...'
                             value={searchQuery}
                             onChange={(e) => handleSearch(e.target.value)}
-                            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none'
+                            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all duration-300'
                         />
                     </div>
                     <button
@@ -211,10 +211,10 @@ export default function BoardsPage() {
                                         key={card.id}
                                         className='block'
                                     >
-                                        <div className='p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow'>
+                                        <div className='p-4 bg-white border border-gray-300 rounded-lg'>
                                             <h4 className='font-bold text-lg mb-1'>{card.title}</h4>
                                             {card.description && (
-                                                <p className='text-sm text-gray-600 line-clamp-2 mb-2'>{card.description}</p>
+                                                <p className='text-sm line-clamp-2 mb-2'>{card.description}</p>
                                             )}
                                             <div className='flex items-center gap-3 mt-2 text-xs text-gray-500'>
                                                 {card.due_date && (
@@ -248,27 +248,27 @@ export default function BoardsPage() {
 
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {isCreating ? (
-                            <div className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 bg-white'>
+                            <div className='rounded-lg border border-gray-300 hover:border-gray-400 p-4 bg-white'>
                                 <h4 className='text-xl font-bold mb-4'>Create New Board</h4>
                                 <input
                                     type='text'
                                     placeholder='Board Name'
                                     value={newBoardName}
                                     onChange={(e) => setNewBoardName(e.target.value)}
-                                    className='w-full p-2 mb-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none'
+                                    className='w-full p-2 mb-4 border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none'
                                     autoFocus
                                 />
                                 <textarea
                                     placeholder='Description (optional)'
                                     value={newBoardDescription}
                                     onChange={(e) => setNewBoardDescription(e.target.value)}
-                                    className='w-full p-2 mb-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none'
+                                    className='w-full p-2 mb-4 border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none'
                                     rows={3}
                                 />
                                 <div className='flex gap-2'>
                                     <button
                                         onClick={createBoard}
-                                        className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium'
+                                        className='flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-medium cursor-pointer transition-colors duration-300'
                                     >
                                         Create
                                     </button>
@@ -278,7 +278,7 @@ export default function BoardsPage() {
                                             setNewBoardName("");
                                             setNewBoardDescription("");
                                         }}
-                                        className='flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 font-medium'
+                                        className='flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium cursor-pointer transition-colors duration-300'
                                     >
                                         Cancel
                                     </button>
@@ -287,41 +287,41 @@ export default function BoardsPage() {
                         ) : (
                             <div
                                 onClick={() => setIsCreating(true)}
-                                className='rounded-lg shadow-md ring-1 ring-gray-700 p-4 hover:shadow-lg transition-shadow duration-300 bg-green-300/25 flex flex-col items-center justify-center cursor-pointer group'
+                                className='rounded-lg border border-gray-300 hover:border-gray-400 p-4 duration-300 bg-green-300/25 flex flex-col items-center justify-center cursor-pointer group'
                             >
-                                <Plus className='h-8 w-8 text-green-700 group-hover:scale-110 transition-transform' />
+                                <Plus className='h-8 w-8 text-green-700 group-hover:scale-105 transition-transform duration-300' />
                                 <h4 className='text-xl font-bold text-green-800'>Create New Board</h4>
                             </div>
                         )}
 
                         {editingBoardId && (
-                            <div className='rounded-lg shadow-md ring-1 ring-blue-500 p-4 bg-blue-50 border border-blue-200'>
+                            <div className='rounded-lg border border-blue-500 p-4 bg-blue-50/25'>
                                 <h4 className='text-xl font-bold mb-4'>Edit Board</h4>
                                 <input
                                     type='text'
                                     placeholder='Board Name'
                                     value={editBoardName}
                                     onChange={(e) => setEditBoardName(e.target.value)}
-                                    className='w-full p-2 mb-2 border border-blue-400 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
+                                    className='w-full p-2 mb-4 border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
                                     autoFocus
                                 />
                                 <textarea
                                     placeholder='Description (optional)'
                                     value={editBoardDescription}
                                     onChange={(e) => setEditBoardDescription(e.target.value)}
-                                    className='w-full p-2 mb-4 border border-blue-400 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
+                                    className='w-full p-2 mb-4 border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white'
                                     rows={3}
                                 />
                                 <div className='flex gap-2'>
                                     <button
                                         onClick={updateBoard}
-                                        className='flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium'
+                                        className='flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-medium cursor-pointer transition-colors duration-300'
                                     >
                                         Save
                                     </button>
                                     <button
                                         onClick={() => setEditingBoardId(null)}
-                                        className='flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 font-medium'
+                                        className='flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium cursor-pointer transition-colors duration-300'
                                     >
                                         Cancel
                                     </button>
@@ -333,25 +333,25 @@ export default function BoardsPage() {
                             <Link
                                 to={`/board/${board.id}`}
                                 key={board.id}
-                                className={`group relative rounded-lg shadow-md ring-1 ring-gray-700 p-4 hover:shadow-lg transition-all duration-300 overflow-hidden ${board.archived ? 'opacity-70 bg-gray-50 border-dashed' : 'bg-white'}`}
+                                className={`group relative rounded-lg border border-gray-300 hover:border-gray-400 p-4 transition-all duration-300 overflow-hidden ${board.archived ? 'opacity-70 bg-gray-50 border-dashed' : 'bg-white'}`}
                                 draggable={false}
                             >
                                 {board.archived && (
-                                    <div className='absolute top-0 right-0 bg-indigo-500 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-1'>
+                                    <div className='absolute top-0 right-0 bg-indigo-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-bl-lg flex items-center gap-1'>
                                         <Archive className='h-2.5 w-2.5' />
                                         Archived
                                     </div>
                                 )}
                                 <div className='flex flex-col h-full'>
-                                    <h4 className='text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors'>{board.name}</h4>
+                                    <h4 className='text-xl font-bold mb-2 transition-colors'>{board.name}</h4>
                                     <p className='text-gray-600 mb-4 line-clamp-3 flex-1'>{board.description || "No description provided."}</p>
-                                    <div className='flex items-center justify-between mt-auto pt-4 border-t border-gray-100'>
+                                    <div className='flex items-center justify-between mt-auto pt-4 border-t border-gray-300'>
                                         <p className='text-xs text-gray-400'>Updated {new Date(board.updated_at).toLocaleDateString()}</p>
                                         <div className='flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>
                                             {!board.archived && (
                                                 <button
                                                     onClick={(e) => startEditingBoard(board, e)}
-                                                    className='p-1.5 rounded bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                                                    className='p-1.5 rounded bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-300 cursor-pointer transition-colors duration-300'
                                                     title='Rename board'
                                                 >
                                                     <Edit2 className='h-4 w-4' />
@@ -360,7 +360,7 @@ export default function BoardsPage() {
                                             {board.archived ? (
                                                 <button
                                                     onClick={(e) => restoreBoard(board.id, e)}
-                                                    className='p-1.5 rounded bg-green-50 text-green-600 hover:bg-green-100 border border-green-100'
+                                                    className='p-1.5 rounded bg-green-50 text-green-600 hover:bg-green-100 border border-green-300 cursor-pointer transition-colors duration-300'
                                                     title='Restore board'
                                                 >
                                                     <RefreshCw className='h-4 w-4' />
@@ -368,7 +368,7 @@ export default function BoardsPage() {
                                             ) : (
                                                 <button
                                                     onClick={(e) => archiveBoard(board.id, e)}
-                                                    className='p-1.5 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100'
+                                                    className='p-1.5 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-300 cursor-pointer transition-colors duration-300'
                                                     title='Archive board'
                                                 >
                                                     <Archive className='h-4 w-4' />
@@ -376,7 +376,7 @@ export default function BoardsPage() {
                                             )}
                                             <button
                                                 onClick={(e) => deleteBoard(board.id, e)}
-                                                className='p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                                className='p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-300 cursor-pointer transition-colors duration-300'
                                                 title='Delete board'
                                             >
                                                 <Trash2 className='h-4 w-4' />

@@ -95,9 +95,17 @@ export default function BoardPage() {
 
     useEffect(() => {
         if (board) {
-            getApi().setDiscordActivity(`Working on Board`, board.name);
+            getApi().setDiscordActivity(`Working on Board`, board.name, { boardName: board.name });
         }
     }, [board]);
+
+    useEffect(() => {
+        if (editingCard && board) {
+            getApi().setDiscordActivity(`Editing Card`, editingCard.title, { boardName: board.name, cardTitle: editingCard.title });
+        } else if (!editingCard && board) {
+            getApi().setDiscordActivity(`Working on Board`, board.name, { boardName: board.name });
+        }
+    }, [editingCard, board]);
 
     useEffect(() => {
         if (boardId) {

@@ -9,17 +9,23 @@ export function generateId() {
     return crypto.randomUUID();
 }
 
-export function handleCloseEvents(mainWindow: BrowserWindow) {
+export function handleCloseEvents(mainWindow: BrowserWindow, db: any) {
     let willClose = false;
 
-    mainWindow.on('close', (e) => {
+    mainWindow.on('close', async (e) => {
         if (willClose) {
             return;
         }
-        e.preventDefault();
-        mainWindow.hide();
-        if (app.dock) {
-            app.dock.hide();
+
+        await db.read();
+        const closeToTray = db.data.settings.find((s: any) => s.key === 'closeToTray')?.value !== 'false';
+
+        if (closeToTray) {
+            e.preventDefault();
+            mainWindow.hide();
+            if (app.dock) {
+                app.dock.hide();
+            }
         }
     });
 

@@ -209,7 +209,7 @@ export default function RecycleBinPage() {
                                 <div
                                     key={board.id}
                                     onClick={() => isSelectionMode && toggleSelection(board.id)}
-                                    className={`p-4 bg-white border rounded-lg shadow-sm group transition-all ${
+                                    className={`p-4 bg-white border border-gray-300 rounded-lg group transition-all ${
                                         isSelectionMode
                                             ? 'cursor-pointer hover:border-blue-400'
                                             : 'border-gray-200'
@@ -245,7 +245,7 @@ export default function RecycleBinPage() {
                                                     e.stopPropagation();
                                                     restoreBoard(board.id);
                                                 }}
-                                                className='flex-1 flex items-center justify-center gap-2 py-2 bg-green-50 text-green-700 rounded border border-green-200 hover:bg-green-100 transition-colors text-sm font-medium'
+                                                className='cursor-pointer flex-1 flex items-center justify-center gap-2 py-2 bg-green-50 text-green-700 rounded border border-green-300 hover:bg-green-100 transition-colors text-sm font-medium'
                                             >
                                                 <RefreshCw className='h-4 w-4' />
                                                 Restore
@@ -255,7 +255,7 @@ export default function RecycleBinPage() {
                                                     e.stopPropagation();
                                                     permanentlyDeleteBoard(board.id);
                                                 }}
-                                                className='flex-1 flex items-center justify-center gap-2 py-2 bg-red-50 text-red-700 rounded border border-red-200 hover:bg-red-100 transition-colors text-sm font-medium'
+                                                className='cursor-pointer flex-1 flex items-center justify-center gap-2 py-2 bg-red-50 text-red-700 rounded border border-red-300 hover:bg-red-100 transition-colors text-sm font-medium'
                                             >
                                                 <Trash2 className='h-4 w-4' />
                                                 Delete Forever

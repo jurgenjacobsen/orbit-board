@@ -51,8 +51,40 @@ export async function initDatabase(): Promise<LowDatabase> {
     // Initialize default settings if not exists
     if (!db.data.settings.find(s => s.key === 'darkMode')) {
         db.data.settings.push({ key: 'darkMode', value: 'false' });
-        await db.write();
+        needsWrite = true;
     }
+
+    if (!db.data.settings.find(s => s.key === 'discordEnabled')) {
+        db.data.settings.push({ key: 'discordEnabled', value: 'true' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'discordShowBoard')) {
+        db.data.settings.push({ key: 'discordShowBoard', value: 'true' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'discordShowCard')) {
+        db.data.settings.push({ key: 'discordShowCard', value: 'true' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'launchAtStartup')) {
+        db.data.settings.push({ key: 'launchAtStartup', value: 'false' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'startMinimized')) {
+        db.data.settings.push({ key: 'startMinimized', value: 'false' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'closeToTray')) {
+        db.data.settings.push({ key: 'closeToTray', value: 'true' });
+        needsWrite = true;
+    }
+
+    if (needsWrite) await db.write();
 
     console.log('Database initialized successfully');
 

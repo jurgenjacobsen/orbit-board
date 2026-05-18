@@ -24,15 +24,15 @@
 
 ## 4. System Integrations
 - [x] **Discord Rich Presence**: Integrate with Discord to show current board activity in the user's status.
-- [ ] **Discord Settings**: Add a setting option to enable/disable Discord Rich Presence and allow users to customize the activity details (e.g., showing board name, card title, etc.).
-- [ ] **Installer Builds/Updates**: Rework the installer builds to support multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms.
+- [x] **Discord Settings**: Add a setting option to enable/disable Discord Rich Presence and allow users to customize the activity details (e.g., showing board name, card title, etc.).
+- [x] **System Startup**: Add a setting to launch the application minimized in the tray on system startup.
+- [x] **Tray**: Tray icon for quick functions. Add a setting to choose whether the app closes to the system tray instead of actual closing, and allow quick access to boards from the tray icon context menu.
+- [ ] **Notifications**: Implement desktop notifications for upcoming due dates or card assignments. (Notifications should have the app icon, a title, and a message. Clicking the notification should open the app and navigate to the relevant card or board. Also add a setting to allow users to choose which notifications they want to receive, such as due date reminders, card assignments, etc., and also an option to set how far in advance they want to receive due date reminders, such as 10 minutes before, 30 minutes before, 1 hour before, etc.)
 
 ## 4.1. Advanced System Integrations
 - [ ] **Localization (i18n)**: Prepare the app for multiple languages to expand user base.
 - [ ] **Calendar Integration**: Export due dates to a `.ics` feed or sync directly with Google Calendar/Outlook.
-- [ ] **Tray**: Add a setting to choose whether the app closes to the system tray instead of actual closing, and allow quick access to boards from the tray icon context menu.
-- [ ] **System Startup**: Add a setting to launch the application minimized in the tray on system startup.
-- [ ] **Notifications**: Implement desktop notifications for upcoming due dates or card assignments.
+- [ ] ***Installer Builds/Updates**: Rework, the installer builds to have the most customizable installer for first time installing, supporting multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms. Also add a setting to allow users to choose whether they want to receive updates automatically or manually check for updates. Any update should also have a changelog that users can view before installing the update, and also an option to defer the update for a certain period of time in case they want to wait before updating. The update must download in the background and not interrupt the user while they are using the app, and also allow users to choose when to install the update (e.g., "Install now", "Remind me later", "Skip this version"). And it should install itself without requiring the user to download from Github and to go through the installer process again, and also allow users to roll back to a previous version if they encounter any issues with the new update. 
 
 ## 5. Performance & Scalability
 - [ ] **Virtualized Lists**: For boards with many cards, implement virtualization to maintain smooth performance.

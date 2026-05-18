@@ -144,8 +144,8 @@ export default function ProfilePage() {
         };
 
         return (
-            <div className='bg-white p-6 rounded-xl border border-gray-300 shadow-sm'>
-                <h3 className='text-lg font-bold mb-4 flex items-center gap-2 text-gray-800'>
+            <div className='bg-white p-6 rounded-lg border border-gray-300'>
+                <h3 className='text-lg font-bold mb-4 flex items-center gap-2'>
                     <Layout className='h-5 w-5 text-green-600' />
                     Board Activity Heatmap
                 </h3>
@@ -222,9 +222,9 @@ export default function ProfilePage() {
             <main className="p-6 mb-10">
                 <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
                     <div className='lg:col-span-1 space-y-6'>
-                        <div className='bg-white p-6 rounded-xl border border-gray-300 shadow-sm flex flex-col items-center text-center'>
+                        <div className='bg-white p-6 rounded-lg border border-gray-300 flex flex-col items-center text-center'>
                             <div className='relative mb-4 group'>
-                                <div className='w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-md'>
+                                <div className='w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-sm'>
                                     {profile.name?.charAt(0) || 'U'}
                                 </div>
                             </div>
@@ -233,7 +233,7 @@ export default function ProfilePage() {
                             <p className='text-sm text-gray-600 italic'>"{profile.bio || 'Add a bio to your profile...'}"</p>
                         </div>
 
-                        <div className='bg-white p-6 rounded-xl border border-gray-300 shadow-sm space-y-4'>
+                        <div className='bg-white p-6 rounded-lg border border-gray-300 space-y-4'>
                             <h4 className='font-bold text-gray-900 border-b pb-2 mb-4'>Personal Info</h4>
                             <div>
                                 <label className='block text-xs font-bold text-gray-400 uppercase mb-1'>Full Name</label>
@@ -243,7 +243,7 @@ export default function ProfilePage() {
                                         type='text'
                                         value={profile.name}
                                         onChange={(e) => setProfile({...profile, name: e.target.value})}
-                                        className='w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all'
+                                        className='w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all'
                                     />
                                 </div>
                             </div>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
                                         type='text'
                                         value={profile.username}
                                         onChange={(e) => setProfile({...profile, username: e.target.value})}
-                                        className='w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all'
+                                        className='w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all'
                                     />
                                 </div>
                             </div>
@@ -264,14 +264,14 @@ export default function ProfilePage() {
                                 <textarea
                                     value={profile.bio}
                                     onChange={(e) => setProfile({...profile, bio: e.target.value})}
-                                    className='w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all resize-none'
+                                    className='w-full p-4 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all resize-none'
                                     rows={4}
                                 />
                             </div>
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className='w-full py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
+                                className='w-full py-3 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed'
                             >
                                 {isSaving ? 'Saving...' : saveSuccess ? <><CheckCircle2 className='h-5 w-5'/> Saved!</> : <><Save className='h-5 w-5'/> Save Profile</>}
                             </button>
@@ -282,8 +282,8 @@ export default function ProfilePage() {
                         {renderHeatmap()}
 
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='p-6 rounded-xl shadow-sm bg-white border border-gray-300 flex items-center gap-4'>
-                                <div className='p-3 bg-white/20 rounded-xl'>
+                            <div className='p-6 rounded-lg bg-white border border-gray-300 flex items-center gap-4'>
+                                <div className='p-3 bg-white/20 rounded-lg'>
                                     <Calendar className='h-8 w-8' />
                                 </div>
                                 <div>
@@ -291,8 +291,8 @@ export default function ProfilePage() {
                                     <h4 className='text-3xl font-black'>{totalContributions}</h4>
                                 </div>
                             </div>
-                            <div className='p-6 rounded-xl shadow-sm bg-white border border-gray-300 flex items-center gap-4'>
-                                <div className='p-3 bg-white/20 rounded-xl'>
+                            <div className='p-6 rounded-lg bg-white border border-gray-300 flex items-center gap-4'>
+                                <div className='p-3 bg-white/20 rounded-lg'>
                                     <CheckCircle2 className='h-8 w-8' />
                                 </div>
                                 <div>
@@ -302,17 +302,17 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        <div className='bg-white p-6 rounded-xl border border-gray-300 shadow-sm'>
+                        <div className='bg-white p-6 rounded-lg border border-gray-300'>
                             <h3 className='text-lg font-bold mb-6 flex items-center gap-2'>
                                 <Clock className='h-5 w-5 text-orange-500' />
                                 Recent Contributions
                             </h3>
-                            <div className='space-y-4'>
+                            <div className='space-y-2'>
                                 {recentActivity.length > 0 ? recentActivity.map(card => (
                                     <Link
                                         key={card.id}
                                         to={`/board/${card.boardId}`}
-                                        className='flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition-colors group'
+                                        className='flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg transition-colors group'
                                     >
                                         <div className='w-2 h-2 rounded-full bg-blue-500' />
                                         <div className="flex-1">

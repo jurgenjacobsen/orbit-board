@@ -68,8 +68,11 @@ declare global {
             getActivityStats: () => Promise<ApiResult<{ [date: string]: number }>>,
 
             // Discord RPC
-            setDiscordActivity: (details: string, state: string) => Promise<void>,
-            clearDiscordActivity: () => Promise<void>
+            setDiscordActivity: (details: string, state: string, context?: { boardName?: string, cardTitle?: string }) => Promise<void>,
+            clearDiscordActivity: () => Promise<void>,
+
+            // Navigation from Tray
+            onNavigate: (callback: (path: string) => void) => () => void
         }
     }
 }
