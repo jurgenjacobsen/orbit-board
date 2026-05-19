@@ -277,7 +277,7 @@ export const mockApi = {
     installUpdate: () => {
         console.log('Mock install update');
     },
-    onUpdaterEvent: (callback: (event: string, data?: any) => void) => {
+    onUpdaterEvent: (_callback: (event: string, data?: any) => void) => {
         // Mock sending an update available event after 3 seconds if requested
         // setTimeout(() => callback('updater:update-available', { version: '1.0.1' }), 3000);
         return () => {};

@@ -10,7 +10,6 @@ import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import { ConfirmProvider } from './hooks/useConfirm.tsx';
 import CalendarPage from './pages/CalendarPage.tsx';
-import type { Window } from '../types.ts';
 
 interface NavLink {
     to: string;
@@ -145,8 +144,8 @@ function AppContent({ isExpanded, setIsExpanded, navLinks }: { isExpanded: boole
     const navigate = useNavigate();
 
     useEffect(() => {
-        if ((window as Window).api?.onNavigate) {
-            const unsubscribe = (window as Window).api.onNavigate((path: string) => {
+        if (window.api?.onNavigate) {
+            const unsubscribe = window.api.onNavigate((path: string) => {
                 navigate(path);
             });
             return () => unsubscribe();

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, ArrowLeft, Trash2, Edit2, Save, Paperclip, File, X, Filter, Search, Archive, RefreshCw, Calendar } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Save, File, X, Filter, Search, Archive, RefreshCw, Calendar } from "lucide-react";
 import { getApi } from "../utils/mockApi";
 import type { Board, Column, Card, Attachment, Label } from "../../types";
 import Markdown from "../components/Markdown";
@@ -74,7 +74,7 @@ export default function BoardPage() {
                 const sortedColumns = result.data.sort((a: Column, b: Column) => a.position - b.position);
                 setColumns(sortedColumns);
                 // Load all cards in parallel for better performance
-                await Promise.all(sortedColumns.map(column => loadCards(column.id)));
+                await Promise.all(sortedColumns.map((column: Column) => loadCards(column.id)));
             }
         } catch (error) {
             console.error("Failed to load columns:", error);

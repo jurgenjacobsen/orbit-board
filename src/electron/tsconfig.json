@@ -5,7 +5,6 @@
         "module": "nodenext",
         "rootDir": "../../src",
         "outDir": "../../dist-electron",
-        "skipLibCheck": true,
-        "types": ["../../types"]
+        "skipLibCheck": true
     }
 }

@@ -40,7 +40,7 @@ export default function SettingsPage() {
         loadSettings();
 
         // Listen for updater events
-        const cleanup = getApi().onUpdaterEvent((event, data) => {
+        const cleanup = getApi().onUpdaterEvent((event: string, data?: any) => {
             if (event === 'updater:update-available') {
                 setUpdateAvailable(data);
                 setUpdateStatus('Update available: ' + data.version);
