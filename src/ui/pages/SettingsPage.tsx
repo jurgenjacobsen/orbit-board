@@ -22,9 +22,44 @@ export default function SettingsPage() {
         closeToTray: true
     });
 
+    const [notificationSettings, setNotificationSettings] = useState({
+        enabled: true,
+        dueReminder: '30'
+    });
+
+    const [updateSettings, setUpdateSettings] = useState({
+        autoUpdateEnabled: true
+    });
+
+    const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+    const [updateProgress, setUpdateProgress] = useState<{ percent: number } | null>(null);
+    const [updateAvailable, setUpdateAvailable] = useState<any | null>(null);
+
     useEffect(() => {
         getApi().setDiscordActivity('Adjusting Settings', 'Idle');
         loadSettings();
+
+        // Listen for updater events
+        const cleanup = getApi().onUpdaterEvent((event, data) => {
+            if (event === 'updater:update-available') {
+                setUpdateAvailable(data);
+                setUpdateStatus('Update available: ' + data.version);
+            } else if (event === 'updater:update-not-available') {
+                setUpdateStatus('You are on the latest version.');
+                setTimeout(() => setUpdateStatus(null), 3000);
+            } else if (event === 'updater:error') {
+                setUpdateStatus('Error checking for updates.');
+                setTimeout(() => setUpdateStatus(null), 5000);
+            } else if (event === 'updater:download-progress') {
+                setUpdateProgress({ percent: data.percent });
+                setUpdateStatus('Downloading update...');
+            } else if (event === 'updater:update-downloaded') {
+                setUpdateProgress(null);
+                setUpdateStatus('Update downloaded. Ready to install.');
+            }
+        });
+
+        return cleanup;
     }, []);
 
     const loadSettings = async () => {
@@ -51,6 +86,50 @@ export default function SettingsPage() {
             startMinimized: startMinimized.success && startMinimized.data !== null ? startMinimized.data === 'true' : false,
             closeToTray: closeToTray.success && closeToTray.data !== null ? closeToTray.data === 'true' : true
         });
+
+        // Notification settings
+        const notificationsEnabled = await api.getSetting('notificationsEnabled');
+        const notificationDueReminder = await api.getSetting('notificationDueReminder');
+
+        setNotificationSettings({
+            enabled: notificationsEnabled.success && notificationsEnabled.data !== null ? notificationsEnabled.data === 'true' : true,
+            dueReminder: notificationDueReminder.success && notificationDueReminder.data !== null ? notificationDueReminder.data : '30'
+        });
+
+        // Update settings
+        const autoUpdateEnabled = await api.getSetting('autoUpdateEnabled');
+        setUpdateSettings({
+            autoUpdateEnabled: autoUpdateEnabled.success && autoUpdateEnabled.data !== null ? autoUpdateEnabled.data === 'true' : true
+        });
+    };
+
+    const updateAutoUpdateSetting = async (value: boolean) => {
+        const api = getApi();
+        await api.setSetting('autoUpdateEnabled', String(value));
+        setUpdateSettings({ autoUpdateEnabled: value });
+    };
+
+    const checkForUpdates = async () => {
+        setUpdateStatus('Checking for updates...');
+        await getApi().checkForUpdates();
+    };
+
+    const downloadUpdate = async () => {
+        setUpdateStatus('Starting download...');
+        await getApi().downloadUpdate();
+    };
+
+    const installUpdate = () => {
+        getApi().installUpdate();
+    };
+
+    const updateNotificationSetting = async (key: string, value: string | boolean) => {
+        const api = getApi();
+        await api.setSetting(key, String(value));
+        setNotificationSettings(prev => ({
+            ...prev,
+            [key === 'notificationsEnabled' ? 'enabled' : 'dueReminder']: value
+        }));
     };
 
     const updateDiscordSetting = async (key: string, value: boolean) => {
@@ -214,6 +293,175 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className='text-2xl font-semibold mb-4'>Notifications</h3>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-white border border-gray-300 rounded-lg space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <span className="text-lg font-medium">Desktop Notifications</span>
+                                        <p className="text-sm text-gray-500">Get alerted about upcoming due dates</p>
+                                    </div>
+                                    <button
+                                        onClick={() => updateNotificationSetting('notificationsEnabled', !notificationSettings.enabled)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${notificationSettings.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationSettings.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+
+                                {notificationSettings.enabled && (
+                                    <div className="pt-4 border-t border-gray-300 space-y-4">
+                                        <div className="flex flex-col space-y-2">
+                                            <label className="text-sm font-medium">Reminder Time</label>
+                                            <select
+                                                value={notificationSettings.dueReminder}
+                                                onChange={(e) => updateNotificationSetting('notificationDueReminder', e.target.value)}
+                                                className="p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="5">5 minutes before</option>
+                                                <option value="10">10 minutes before</option>
+                                                <option value="15">15 minutes before</option>
+                                                <option value="30">30 minutes before</option>
+                                                <option value="60">1 hour before</option>
+                                                <option value="1440">1 day before</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500">How far in advance to notify you of due dates</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className='text-2xl font-semibold mb-4'>Updates</h3>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-white border border-gray-300 rounded-lg space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <span className="text-lg font-medium">Automatic Updates</span>
+                                        <p className="text-sm text-gray-500">Check for updates in the background</p>
+                                    </div>
+                                    <button
+                                        onClick={() => updateAutoUpdateSetting(!updateSettings.autoUpdateEnabled)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${updateSettings.autoUpdateEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${updateSettings.autoUpdateEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+                                <div className="pt-4 border-t border-gray-300">
+                                    <button
+                                        onClick={checkForUpdates}
+                                        className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors cursor-pointer font-medium mb-2"
+                                    >
+                                        Check for Updates
+                                    </button>
+                                    
+                                    {updateStatus && (
+                                        <div className="text-sm text-center text-gray-700 p-2 bg-gray-50 rounded">
+                                            {updateStatus}
+                                        </div>
+                                    )}
+
+                                    {updateProgress && (
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${updateProgress.percent}%` }}></div>
+                                        </div>
+                                    )}
+
+                                    {updateAvailable && !updateProgress && updateStatus?.includes('Update downloaded') && (
+                                        <div className="mt-2 space-y-2">
+                                            <button
+                                                onClick={installUpdate}
+                                                className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors cursor-pointer font-medium"
+                                            >
+                                                Install Update Now
+                                            </button>
+                                        </div>
+                                    )}
+                                    {updateAvailable && !updateProgress && !updateStatus?.includes('Update downloaded') && (
+                                        <div className="mt-2 space-y-2">
+                                            <div className="bg-gray-50 p-2 rounded text-sm text-gray-700 max-h-32 overflow-y-auto border border-gray-200">
+                                                <strong>Release Notes:</strong><br/>
+                                                {updateAvailable.releaseNotes || 'No release notes available.'}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={downloadUpdate}
+                                                    className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer font-medium text-sm"
+                                                >
+                                                    Download
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setUpdateAvailable(null);
+                                                        setUpdateStatus('Update skipped for now.');
+                                                        setTimeout(() => setUpdateStatus(null), 3000);
+                                                    }}
+                                                    className="flex-1 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors cursor-pointer font-medium text-sm"
+                                                >
+                                                    Skip
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className='text-2xl font-semibold mb-4'>Data Management</h3>
+                        <div className="p-4 bg-white border border-gray-300 rounded-lg space-y-4">
+                            <button
+                                onClick={async () => {
+                                    const api = getApi();
+                                    const result = await api.exportData();
+                                    if (result.success) {
+                                        await alert({ title: "Success", message: `Data exported successfully to ${result.data}` });
+                                    } else if (result.error !== 'Export cancelled') {
+                                        await alert({ title: "Error", message: `Failed to export data: ${result.error}`, isDanger: true });
+                                    }
+                                }}
+                                className='w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer font-medium'
+                            >
+                                Export Application Data (.json)
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const api = getApi();
+                                    const result = await api.importData();
+                                    if (result.success) {
+                                        await alert({ title: "Success", message: "Data imported successfully. The application will now reload." });
+                                        window.location.reload();
+                                    } else if (result.error !== 'Import cancelled') {
+                                        await alert({ title: "Error", message: `Failed to import data: ${result.error}`, isDanger: true });
+                                    }
+                                }}
+                                className='w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors cursor-pointer font-medium'
+                            >
+                                Import Application Data (.json)
+                            </button>
+                            <div className="pt-4 border-t border-gray-300">
+                                <button
+                                    onClick={async () => {
+                                        const api = getApi();
+                                        const result = await api.exportCalendar();
+                                        if (result.success) {
+                                            await alert({ title: "Success", message: `Calendar exported successfully to ${result.data}` });
+                                        } else if (result.error !== 'Export cancelled') {
+                                            await alert({ title: "Error", message: `Failed to export calendar: ${result.error}`, isDanger: true });
+                                        }
+                                    }}
+                                    className='w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors cursor-pointer font-medium'
+                                >
+                                    Export All Due Dates to Calendar (.ics)
+                                </button>
                             </div>
                         </div>
                     </section>

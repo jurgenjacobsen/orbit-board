@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, ArrowLeft, Trash2, Edit2, Save, Paperclip, File, X, Filter, Search, Archive, RefreshCw } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Edit2, Save, Paperclip, File, X, Filter, Search, Archive, RefreshCw, Calendar } from "lucide-react";
 import { getApi } from "../utils/mockApi";
 import type { Board, Column, Card, Attachment, Label } from "../../types";
 import Markdown from "../components/Markdown";
 import { useConfirm } from "../hooks/useConfirm";
+import { VirtualList } from "../components/VirtualList";
+import CardItem from "../components/CardItem";
 
 export default function BoardPage() {
     const { boardId } = useParams<{ boardId: string }>();
@@ -71,9 +73,8 @@ export default function BoardPage() {
             if (result.success && result.data) {
                 const sortedColumns = result.data.sort((a: Column, b: Column) => a.position - b.position);
                 setColumns(sortedColumns);
-                for (const column of sortedColumns) {
-                    await loadCards(column.id);
-                }
+                // Load all cards in parallel for better performance
+                await Promise.all(sortedColumns.map(column => loadCards(column.id)));
             }
         } catch (error) {
             console.error("Failed to load columns:", error);
@@ -504,6 +505,22 @@ export default function BoardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={async () => {
+                                const api = getApi();
+                                const result = await api.exportCalendar({ boardId: board.id });
+                                if (result.success) {
+                                    alert(`Board calendar exported successfully to ${result.data}`);
+                                } else if (result.error !== 'Export cancelled') {
+                                    alert(`Failed to export board calendar: ${result.error}`);
+                                }
+                            }}
+                            className='p-2 rounded-lg bg-gray-100 hover:bg-green-100 hover:text-green-600 duration-300 transition-colors cursor-pointer flex items-center gap-2'
+                            title='Export board due dates to calendar (.ics)'
+                        >
+                            <Calendar className='h-5 w-5' />
+                            <span className='text-sm font-medium whitespace-nowrap hidden sm:inline'>Export</span>
+                        </button>
+                        <button
                             onClick={() => setIsFilterVisible(!isFilterVisible)}
                             className={`p-2 rounded-lg duration-300 transition-colors cursor-pointer flex items-center gap-2 ${isFilterVisible || filterQuery || filterLabels.length > 0 || filterDueSoon || includeArchived ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 hover:bg-gray-200'}`}
                             title='Filter cards'
@@ -662,70 +679,24 @@ export default function BoardPage() {
                                     </>
                                 )}
                             </div>
-                            <div className='flex-1 overflow-y-auto space-y-2 mb-2'>
-                                {getFilteredCards(column.id).map((card) => (
-                                    <div
-                                        key={card.id}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, card)}
-                                        className={`bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-shadow ${card.archived ? 'opacity-60 bg-gray-100' : ''}`}
-                                    >
-                                        <div className='flex items-start justify-between'>
-                                            <h4 className='font-medium flex-1 flex items-center gap-2'>
-                                                {card.archived && <Archive className='h-3 w-3 text-gray-400' />}
-                                                {card.title}
-                                            </h4>
-                                            <div className='flex gap-1'>
-                                                <button
-                                                    onClick={() => setEditingCard(card)}
-                                                    className='p-1 rounded hover:bg-gray-100'
-                                                    title='Edit card'
-                                                >
-                                                    <Edit2 className='h-3 w-3' />
-                                                </button>
-                                                {card.archived ? (
-                                                    <button
-                                                        onClick={() => restoreCard(card.id, column.id)}
-                                                        className='p-1 rounded hover:bg-green-100 text-green-600'
-                                                        title='Restore card'
-                                                    >
-                                                        <RefreshCw className='h-3 w-3' />
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => archiveCard(card.id, column.id)}
-                                                        className='p-1 rounded hover:bg-indigo-100 text-indigo-600'
-                                                        title='Archive card'
-                                                    >
-                                                        <Archive className='h-3 w-3' />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => deleteCard(card.id, column.id)}
-                                                    className='p-1 rounded hover:bg-red-100 text-red-600'
-                                                    title='Delete card'
-                                                >
-                                                    <Trash2 className='h-3 w-3' />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {card.description && (
-                                            <Markdown content={card.description} className='text-sm mt-1' />
-                                        )}
-                                        <div className='flex items-center gap-3 mt-2'>
-                                            {card.due_date && (
-                                                <p className='text-xs text-gray-500'>Due: {new Date(card.due_date).toLocaleDateString()}</p>
-                                            )}
-                                            {(card.attachmentCount || 0) > 0 && (
-                                                <div className='flex items-center gap-1 text-gray-400' title={`${card.attachmentCount} attachments`}>
-                                                    <Paperclip className='h-3 w-3' />
-                                                    <span className='text-xs'>{card.attachmentCount}</span>
-                                                </div>
-                                            )}
-                                        </div>
+                            <VirtualList
+                                items={getFilteredCards(column.id)}
+                                itemHeight={140}
+                                containerClassName="flex-1 mb-2 pr-1"
+                                renderItem={(card) => (
+                                    <div className="pb-2 h-full">
+                                        <CardItem
+                                            card={card}
+                                            columnId={column.id}
+                                            onEdit={setEditingCard}
+                                            onDelete={deleteCard}
+                                            onArchive={archiveCard}
+                                            onRestore={restoreCard}
+                                            onDragStart={handleDragStart}
+                                        />
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            />
                             {!column.archived && (
                                 isAddingCard === column.id ? (
                                     <div className='space-y-2'>
@@ -864,8 +835,22 @@ export default function BoardPage() {
                             </div>
                         </div>
                         <div className='flex gap-2 mt-6'>
-                            <button onClick={() => updateCard(editingCard)} className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'>Save</button>
-                            <button onClick={() => setEditingCard(null)} className='flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400'>Cancel</button>
+                            <button onClick={() => updateCard(editingCard)} className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium'>Save</button>
+                            <button
+                                onClick={async () => {
+                                    const api = getApi();
+                                    const result = await api.exportCalendar({ cardId: editingCard.id });
+                                    if (result.success) {
+                                        alert(`Card exported successfully to ${result.data}`);
+                                    } else if (result.error !== 'Export cancelled') {
+                                        alert(`Failed to export card: ${result.error}`);
+                                    }
+                                }}
+                                className='flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-medium'
+                            >
+                                Export to Calendar
+                            </button>
+                            <button onClick={() => setEditingCard(null)} className='flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 font-medium'>Cancel</button>
                         </div>
                     </div>
                 </div>

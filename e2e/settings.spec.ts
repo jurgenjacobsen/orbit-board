@@ -75,16 +75,81 @@ test('configure system and tray settings', async () => {
   const systemSection = page.locator('section').filter({ hasText: 'System' });
   
   // Test Launch at Startup toggle
-  const launchToggle = systemSection.getByRole('button').first();
-  await launchToggle.click();
+  // Find the button specifically in the row for "Launch at Startup"
+  const launchRow = systemSection.locator('div').filter({ hasText: 'Launch at Startup' }).first();
+  const launchToggle = launchRow.getByRole('button');
+  
+  // Ensure it's off initially (it should be by default)
+  // If it's already on, we click it once to see it hide, then again to see it show.
+  // But let's just ensure we click it to make it true.
+  const isEnabled = await launchToggle.evaluate(el => el.classList.contains('bg-blue-600'));
+  if (!isEnabled) {
+    await launchToggle.click();
+  }
   
   // Start Minimized should become visible
   await expect(page.getByText('Start Minimized')).toBeVisible();
   
   // Test Close to Tray toggle
-  const closeToTrayToggle = systemSection.getByRole('button').last();
+  const trayRow = systemSection.locator('div').filter({ hasText: 'Close to Tray' }).first();
+  const closeToTrayToggle = trayRow.getByRole('button');
   await closeToTrayToggle.click();
   
   // Verify UI interaction
   await expect(closeToTrayToggle).toBeVisible();
+});
+
+test('configure notification settings', async () => {
+  // Navigate to Settings
+  await page.getByRole('link', { name: 'Settings' }).click();
+
+  // Find Notifications section
+  const notificationsSection = page.locator('section').filter({ hasText: 'Notifications' });
+  
+  // Test Desktop Notifications toggle
+  const notifyToggle = notificationsSection.getByRole('button').first();
+  
+  // Ensure reminder time is visible (enabled by default)
+  await expect(page.getByText('Reminder Time')).toBeVisible();
+  
+  // Toggle off
+  await notifyToggle.click();
+  
+  // Reminder time should be hidden
+  await expect(page.getByText('Reminder Time')).not.toBeVisible();
+  
+  // Toggle back on
+  await notifyToggle.click();
+  
+  // Reminder time should be visible
+  await expect(page.getByText('Reminder Time')).toBeVisible();
+  
+  // Change reminder time
+  const select = notificationsSection.getByRole('combobox');
+  await select.selectOption('60');
+  
+  // Verify it changed in the UI
+  await expect(select).toHaveValue('60');
+});
+
+test('configure update settings', async () => {
+  // Navigate to Settings
+  await page.getByRole('link', { name: 'Settings' }).click();
+
+  // Find Updates section
+  const updatesSection = page.locator('section').filter({ hasText: 'Updates' });
+  
+  // Test Automatic Updates toggle
+  const autoUpdateToggle = updatesSection.getByRole('button').first();
+  await autoUpdateToggle.click(); // Toggle off
+  await expect(autoUpdateToggle).toBeVisible();
+
+  // Test Check for Updates button
+  const checkUpdatesBtn = updatesSection.getByRole('button', { name: 'Check for Updates' });
+  await expect(checkUpdatesBtn).toBeVisible();
+  
+  // In mock environment, clicking this sets status to "Checking for updates..." 
+  // and then "Mock check for updates" happens, but we just verify the button exists and works.
+  await checkUpdatesBtn.click();
+  await expect(page.getByText('Checking for updates...')).toBeVisible();
 });

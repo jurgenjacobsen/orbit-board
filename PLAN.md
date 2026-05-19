@@ -27,27 +27,28 @@
 - [x] **Discord Settings**: Add a setting option to enable/disable Discord Rich Presence and allow users to customize the activity details (e.g., showing board name, card title, etc.).
 - [x] **System Startup**: Add a setting to launch the application minimized in the tray on system startup.
 - [x] **Tray**: Tray icon for quick functions. Add a setting to choose whether the app closes to the system tray instead of actual closing, and allow quick access to boards from the tray icon context menu.
-- [ ] **Notifications**: Implement desktop notifications for upcoming due dates or card assignments. (Notifications should have the app icon, a title, and a message. Clicking the notification should open the app and navigate to the relevant card or board. Also add a setting to allow users to choose which notifications they want to receive, such as due date reminders, card assignments, etc., and also an option to set how far in advance they want to receive due date reminders, such as 10 minutes before, 30 minutes before, 1 hour before, etc.)
+- [x] **Notifications**: Implement desktop notifications for upcoming due dates or card assignments. (Notifications should have the app icon, a title, and a message. Clicking the notification should open the app and navigate to the relevant card or board. Also add a setting to allow users to choose which notifications they want to receive, such as due date reminders, card assignments, etc., and also an option to set how far in advance they want to receive due date reminders, such as 10 minutes before, 30 minutes before, 1 hour before, etc.)
 
 ## 4.1. Advanced System Integrations
-- [ ] **Localization (i18n)**: Prepare the app for multiple languages to expand user base.
-- [ ] **Calendar Integration**: Export due dates to a `.ics` feed or sync directly with Google Calendar/Outlook.
-- [ ] ***Installer Builds/Updates**: Rework, the installer builds to have the most customizable installer for first time installing, supporting multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms. Also add a setting to allow users to choose whether they want to receive updates automatically or manually check for updates. Any update should also have a changelog that users can view before installing the update, and also an option to defer the update for a certain period of time in case they want to wait before updating. The update must download in the background and not interrupt the user while they are using the app, and also allow users to choose when to install the update (e.g., "Install now", "Remind me later", "Skip this version"). And it should install itself without requiring the user to download from Github and to go through the installer process again, and also allow users to roll back to a previous version if they encounter any issues with the new update. 
+- [x] **Calendar Integration**: Export due dates to a `.ics` feed or sync directly with Google Calendar/Outlook. Each exported event will include the card title and board, description, and a link to open the card in the app. (This export option may be from all cards, one board, column, or card level, allowing users to export specific subsets of their tasks to their calendar.)
+- [x] ***Installer Builds/Updates**: Rework, the installer builds to have the most customizable installer for first time installing, supporting multiple platforms (Windows, macOS, Linux) and make sure that auto-updates work seamlessly across all platforms. Also add a setting to allow users to choose whether they want to receive updates automatically or manually check for updates. Any update should also have a changelog that users can view before installing the update, and also an option to defer the update for a certain period of time in case they want to wait before updating. The update must download in the background and not interrupt the user while they are using the app, and also allow users to choose when to install the update (e.g., "Install now", "Remind me later", "Skip this version"). And it should install itself without requiring the user to download from Github and to go through the installer process again, and also allow users to roll back to a previous version if they encounter any issues with the new update. 
 
 ## 5. Performance & Scalability
-- [ ] **Virtualized Lists**: For boards with many cards, implement virtualization to maintain smooth performance.
-- [ ] **Database Optimization**: Review and optimize SQLite queries, especially for loading large boards or searching.
-- [ ] **Lazy Loading**: Load board data on demand rather than all at once to improve startup times.
+- [x] **Virtualized Lists**: For boards with many cards, implement virtualization to maintain smooth performance.
+- [x] **Database Optimization**: Review and optimize SQLite queries, especially for loading large boards or searching.
+- [x] **Lazy Loading**: Load board data on demand rather than all at once to improve startup times.
 
 ## 6. Community & Open Source
-- [ ] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations). Also provide documentation and examples for plugin development.
+- [x] **Contribution Guidelines**: Establish clear guidelines for contributing to the project, including code style, testing requirements, and issue reporting. (CONTRIBUTING.md)
+- [ ] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations). Provide documentation and examples for plugin development.
 - [ ] **Documentation**: Create comprehensive documentation for both users and developers, including API references for plugins.
-- [ ] **Contribution Guidelines**: Establish clear guidelines for contributing to the project, including code style, testing requirements, and issue reporting.
 
 ## 7. Future Roadmap
-- [ ] **Mobile Support**: Explore options for a mobile version of the app, either through a responsive web app or native mobile applications.
+- [ ] **Calendar Page**: Add a calendar view that shows all cards with due dates in a calendar format, allowing users to see their schedule at a glance and easily drag and drop cards to change their due dates.
+- [ ] **Improve Due Dates**: Add time selection for due dates, not just dates. Parse the due date input to allow natural language (e.g., "tomorrow at 5pm", "next Monday", etc.) and also add a visual indicator on cards that are overdue or due soon.
 - [ ] **Collaboration Features**: Implement real-time collaboration for multiple users working on the same board, with presence indicators and conflict resolution.
 - [ ] **Static Share**: Allow users to generate a static HTML export of a board for sharing without requiring the app, and also a QR Code share that will have the board data encoded in the QR code itself, allowing users to share boards easily without needing to export/import files.
+- [ ] **Localization (i18n)**: Prepare the app for multiple languages to expand user base.
 
 ## 8. Cloud Integration & Database Flexibility
 - [ ] **Cloud Sync / Backup**: Offer an option to sync the SQLite database to cloud providers like Google Drive or Dropbox, or implement a custom sync server.

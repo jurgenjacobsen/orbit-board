@@ -56,11 +56,18 @@ declare global {
             // Export/Import
             exportData: () => Promise<ApiResult<string>>,
             importData: () => Promise<ApiResult<string>>,
+            exportCalendar: (options?: { boardId?: string, cardId?: string }) => Promise<ApiResult<string>>,
             resetApplication: () => Promise<ApiResult<void>>,
             getOverviewData: () => Promise<ApiResult<{
                 upcoming: (Card & { columnName?: string; boardName?: string; boardId?: string })[];
                 recent: (Card & { columnName?: string; boardName?: string; boardId?: string })[];
             }>>,
+
+            // Updater
+            checkForUpdates: () => Promise<any>,
+            downloadUpdate: () => Promise<any>,
+            installUpdate: () => void,
+            onUpdaterEvent: (callback: (event: string, data?: any) => void) => () => void,
 
             // Profile & Activity
             getUserProfile: () => Promise<ApiResult<UserProfile>>,

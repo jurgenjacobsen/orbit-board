@@ -1,7 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Settings, User, Menu, X, SquareLibrary, Trash2 } from 'lucide-react';
+import { Home, Settings, User, Menu, X, SquareLibrary, Calendar } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage.tsx';
 import BoardsPage from './pages/BoardsPage.tsx';
 import BoardPage from './pages/BoardPage.tsx';
@@ -9,6 +9,8 @@ import SettingsPage from './pages/SettingsPage.tsx';
 import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import { ConfirmProvider } from './hooks/useConfirm.tsx';
+import CalendarPage from './pages/CalendarPage.tsx';
+import type { Window } from '../types.ts';
 
 interface NavLink {
     to: string;
@@ -36,6 +38,7 @@ function Sidebar({ isExpanded, toggleSidebar, navLinks }: { isExpanded: boolean;
                     if (key === 'b') navigate('/boards');
                     if (key === 'p') navigate('/profile');
                     if (key === 's') navigate('/settings');
+                    if (key === 'c') navigate('/calendar');
                     if (key === 'r') navigate('/recycle-bin');
                     window.removeEventListener('keydown', onNextKey);
                 };
@@ -65,7 +68,7 @@ function Sidebar({ isExpanded, toggleSidebar, navLinks }: { isExpanded: boolean;
         <aside className={
                     `fixed top-0 left-0 ${isExpanded ? 'w-72' : 'w-24'} transition-all duration-300`
                 }>
-                    <div className='m-4 h-[calc(100vh-2rem)] rounded-lg overflow-hidden flex flex-col shadow-lg ring-1 ring-gray-700 bg-white'>
+                    <div className='m-4 h-[calc(100vh-2rem)] rounded-lg overflow-hidden flex flex-col ring-1 ring-gray-700 bg-white'>
                         {/* Header */}
                         <div className={`flex items-center ${isExpanded ? 'justify-between m-4' : 'justify-center m-2'}`}>
                             <h1 className={`text-2xl font-bold ${isExpanded ? 'block' : 'hidden'} transition-all duration-300 whitespace-nowrap`}>
@@ -124,7 +127,7 @@ function App() {
     const navLinks = [
         { to: '/', label: 'Overview', icon: Home },
         { to: '/boards', label: 'Boards', icon: SquareLibrary },
-        { to: '/recycle-bin', label: 'Recycle Bin', icon: Trash2 },
+        { to: '/calendar', label: 'Calendar', icon: Calendar },
         { to: '/profile', label: 'Profile', icon: User },
         { to: '/settings', label: 'Settings', icon: Settings },
     ];
@@ -142,8 +145,8 @@ function AppContent({ isExpanded, setIsExpanded, navLinks }: { isExpanded: boole
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (window.api?.onNavigate) {
-            const unsubscribe = window.api.onNavigate((path) => {
+        if ((window as Window).api?.onNavigate) {
+            const unsubscribe = (window as Window).api.onNavigate((path: string) => {
                 navigate(path);
             });
             return () => unsubscribe();
@@ -160,6 +163,7 @@ function AppContent({ isExpanded, setIsExpanded, navLinks }: { isExpanded: boole
                     <Route path='/board/:boardId' element={<BoardPage />} />
                     <Route path='/recycle-bin' element={<RecycleBinPage />} />
                     <Route path='/profile' element={<ProfilePage />} />
+                    <Route path='/calendar' element={<CalendarPage />} />
                     <Route path='/settings' element={<SettingsPage />} />
                 </Routes>
             </main>

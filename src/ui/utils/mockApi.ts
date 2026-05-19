@@ -260,6 +260,29 @@ export const mockApi = {
     importData: async (): Promise<ApiResult<string>> => {
         return { success: true, data: 'Import successful' };
     },
+    exportCalendar: async (options?: { boardId?: string, cardId?: string }): Promise<ApiResult<string>> => {
+        console.log('Mock export calendar with options:', options);
+        return { success: true, data: 'mock-calendar-export.ics' };
+    },
+
+    // Updater
+    checkForUpdates: async () => {
+        console.log('Mock check for updates');
+        return null;
+    },
+    downloadUpdate: async () => {
+        console.log('Mock download update');
+        return null;
+    },
+    installUpdate: () => {
+        console.log('Mock install update');
+    },
+    onUpdaterEvent: (callback: (event: string, data?: any) => void) => {
+        // Mock sending an update available event after 3 seconds if requested
+        // setTimeout(() => callback('updater:update-available', { version: '1.0.1' }), 3000);
+        return () => {};
+    },
+
     resetApplication: async (): Promise<ApiResult<void>> => {
         return { success: true };
     },

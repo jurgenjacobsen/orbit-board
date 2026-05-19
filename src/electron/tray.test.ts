@@ -21,21 +21,34 @@ vi.mock('electron', () => {
 
 const mainWindow = {
     show: vi.fn(),
-} satisfies Partial<BrowserWindow> as unknown as BrowserWindow;
+    webContents: {
+        send: vi.fn(),
+    } as any,
+} as unknown as BrowserWindow;
 
-test('', () => {
-    createTray(mainWindow);
+const mockDb = {
+    read: vi.fn().mockResolvedValue(undefined),
+    data: {
+        boards: []
+    }
+};
+
+test('tray menu items and actions', async () => {
+    await createTray(mainWindow, mockDb);
 
     const calls = (Menu.buildFromTemplate as unknown as Mock).mock.calls;
     const args = calls[0] as Parameters<typeof Menu.buildFromTemplate>;
     const template = args[0];
-    expect(template).toHaveLength(4);
+    
+    // 0: Orbit Board, 1: Sep, 2: Show, 3: Sep, 4: Quit
+    expect(template).toHaveLength(5);
 
     expect(template[2].label).toEqual('Show');
     template[2]?.click?.({} as MenuItem, undefined, {} as Electron.KeyboardEvent);
     expect(mainWindow.show).toHaveBeenCalled();
     expect(app.dock?.show).toHaveBeenCalled();
 
-    template[3]?.click?.({} as MenuItem, undefined, {} as Electron.KeyboardEvent);
+    expect(template[4].label).toEqual('Quit');
+    template[4]?.click?.({} as MenuItem, undefined, {} as Electron.KeyboardEvent);
     expect(app.quit).toHaveBeenCalled();
 });

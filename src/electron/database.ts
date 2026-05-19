@@ -84,6 +84,21 @@ export async function initDatabase(): Promise<LowDatabase> {
         needsWrite = true;
     }
 
+    if (!db.data.settings.find(s => s.key === 'notificationsEnabled')) {
+        db.data.settings.push({ key: 'notificationsEnabled', value: 'true' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'notificationDueReminder')) {
+        db.data.settings.push({ key: 'notificationDueReminder', value: '30' });
+        needsWrite = true;
+    }
+
+    if (!db.data.settings.find(s => s.key === 'autoUpdateEnabled')) {
+        db.data.settings.push({ key: 'autoUpdateEnabled', value: 'true' });
+        needsWrite = true;
+    }
+
     if (needsWrite) await db.write();
 
     console.log('Database initialized successfully');

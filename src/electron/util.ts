@@ -9,6 +9,10 @@ export function generateId() {
     return crypto.randomUUID();
 }
 
+export function formatICalDate(date: Date): string {
+    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+
 export function handleCloseEvents(mainWindow: BrowserWindow, db: any) {
     let willClose = false;
 

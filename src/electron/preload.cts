@@ -58,10 +58,37 @@ contextBridge.exposeInMainWorld('api', {
   // Export/Import
   exportData: () => ipcRenderer.invoke('db:exportData'),
   importData: () => ipcRenderer.invoke('db:importData'),
+  exportCalendar: (options: any) => ipcRenderer.invoke('db:exportCalendar', options),
   getOverviewData: () => ipcRenderer.invoke('db:getOverviewData'),
   getUserProfile: () => ipcRenderer.invoke('db:getUserProfile'),
   updateUserProfile: (profile: any) => ipcRenderer.invoke('db:updateUserProfile', profile),
   getActivityStats: () => ipcRenderer.invoke('db:getActivityStats'),
+
+  // Updater
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  downloadUpdate: () => ipcRenderer.invoke('updater:download'),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
+  onUpdaterEvent: (callback: (event: string, data?: any) => void) => {
+    const events = [
+      'updater:update-available',
+      'updater:update-not-available',
+      'updater:error',
+      'updater:download-progress',
+      'updater:update-downloaded'
+    ];
+    
+    const listeners = events.map(evt => {
+      const listener = (_e: any, data: any) => callback(evt, data);
+      ipcRenderer.on(evt, listener);
+      return { evt, listener };
+    });
+
+    return () => {
+      listeners.forEach(({ evt, listener }) => {
+        ipcRenderer.removeListener(evt, listener);
+      });
+    };
+  },
 
   // Discord RPC
   setDiscordActivity: (details: string, state: string, context?: any) => ipcRenderer.invoke('discord:setActivity', details, state, context),
