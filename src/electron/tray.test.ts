@@ -23,7 +23,7 @@ const mainWindow = {
     show: vi.fn(),
     webContents: {
         send: vi.fn(),
-    } as any,
+    } as unknown as BrowserWindow['webContents'],
 } as unknown as BrowserWindow;
 
 const mockDb = {

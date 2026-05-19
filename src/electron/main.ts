@@ -867,7 +867,7 @@ ipcMain.handle('db:getActivityStats', async () => {
     try {
         await db.read();
         const stats: { [date: string]: number } = {};
-        const addDate = (dateStr: string | null | undefined) => { if (!dateStr || typeof dateStr !== 'string') return; try { const d = new Date(dateStr); if (isNaN(d.getTime())) return; const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; stats[dateKey] = (stats[dateKey] || 0) + 1; } catch {} };
+        const addDate = (dateStr: string | null | undefined) => { if (!dateStr || typeof dateStr !== 'string') return; try { const d = new Date(dateStr); if (isNaN(d.getTime())) return; const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; stats[dateKey] = (stats[dateKey] || 0) + 1; } catch (_e) { /* ignore invalid dates */ } };
         db.data.cards.forEach(card => { addDate(card.created_at); if (card.updated_at && card.updated_at !== card.created_at) addDate(card.updated_at); });
         db.data.boards.forEach(b => addDate(b.created_at)); db.data.columns.forEach(c => addDate(c.created_at)); db.data.attachments.forEach(a => addDate(a.created_at));
         return { success: true, data: stats };

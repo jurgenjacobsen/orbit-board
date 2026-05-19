@@ -1,8 +1,10 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import { BrowserWindow, Menu, Tray, app, MenuItemConstructorOptions } from "electron";
 import { getAssetPath } from "./pathResolver.js";
 import path from "path";
+import type { LowDatabase } from "./database.js";
+import type { Board } from "../types.js";
 
-export async function createTray(mainWindow: BrowserWindow, db: any) {
+export async function createTray(mainWindow: BrowserWindow, db: LowDatabase) {
   const tray = new Tray(
     path.join(
       getAssetPath(),
@@ -19,9 +21,9 @@ export async function createTray(mainWindow: BrowserWindow, db: any) {
 
   const updateContextMenu = async () => {
     await db.read();
-    const boards = db.data.boards.filter((b: any) => !b.deleted_at && !b.archived);
+    const boards = db.data.boards.filter((b: Board) => !b.deleted_at && !b.archived);
 
-    const boardItems = boards.slice(0, 5).map((board: any) => ({
+    const boardItems = boards.slice(0, 5).map((board: Board) => ({
       label: board.name,
       click: () => {
         mainWindow.show();
@@ -33,7 +35,7 @@ export async function createTray(mainWindow: BrowserWindow, db: any) {
       }
     }));
 
-    const template: any[] = [
+    const template: MenuItemConstructorOptions[] = [
       {
           label: 'Orbit Board' + " ".repeat(10),
           enabled: false,

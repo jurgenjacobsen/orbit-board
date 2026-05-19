@@ -1,19 +1,20 @@
 import { BrowserWindow, app } from 'electron';
-import crypto from 'crypto';
+import type { LowDatabase } from './database.js';
+import type { Setting } from '../types.js';
 
 export function isDev(): boolean {
-    return process.env.NODE_ENV === 'development';
+    return process.env.NODE_ENV === 'development' || !app.isPackaged;
 }
 
-export function generateId() {
-    return crypto.randomUUID();
+export function generateId(): string {
+    return Math.random().toString(36).substring(2, 9);
 }
 
 export function formatICalDate(date: Date): string {
     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
 
-export function handleCloseEvents(mainWindow: BrowserWindow, db: any) {
+export function handleCloseEvents(mainWindow: BrowserWindow, db: LowDatabase) {
     let willClose = false;
 
     mainWindow.on('close', async (e) => {
@@ -22,7 +23,7 @@ export function handleCloseEvents(mainWindow: BrowserWindow, db: any) {
         }
 
         await db.read();
-        const closeToTray = db.data.settings.find((s: any) => s.key === 'closeToTray')?.value !== 'false';
+        const closeToTray = db.data.settings.find((s: Setting) => s.key === 'closeToTray')?.value !== 'false';
 
         if (closeToTray) {
             e.preventDefault();

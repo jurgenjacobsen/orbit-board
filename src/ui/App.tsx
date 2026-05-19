@@ -8,7 +8,7 @@ import BoardPage from './pages/BoardPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
-import { ConfirmProvider } from './hooks/useConfirm.tsx';
+import { ConfirmProvider } from './components/ConfirmProvider';
 import CalendarPage from './pages/CalendarPage.tsx';
 
 interface NavLink {

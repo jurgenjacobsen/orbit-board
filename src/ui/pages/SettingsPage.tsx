@@ -3,6 +3,7 @@ import { getApi } from "../utils/mockApi";
 import { useNavigate } from "react-router-dom";
 import { useConfirm, useAlert } from "../hooks/useConfirm";
 import { useDarkMode } from "../hooks/useDarkMode";
+import type { UpdateInfo } from "../../types";
 
 export default function SettingsPage() {
     const navigate = useNavigate();
@@ -33,17 +34,18 @@ export default function SettingsPage() {
 
     const [updateStatus, setUpdateStatus] = useState<string | null>(null);
     const [updateProgress, setUpdateProgress] = useState<{ percent: number } | null>(null);
-    const [updateAvailable, setUpdateAvailable] = useState<any | null>(null);
+    const [updateAvailable, setUpdateAvailable] = useState<UpdateInfo | null>(null);
 
     useEffect(() => {
         getApi().setDiscordActivity('Adjusting Settings', 'Idle');
         loadSettings();
 
         // Listen for updater events
-        const cleanup = getApi().onUpdaterEvent((event: string, data?: any) => {
+        const cleanup = getApi().onUpdaterEvent((event: string, data?: unknown) => {
             if (event === 'updater:update-available') {
-                setUpdateAvailable(data);
-                setUpdateStatus('Update available: ' + data.version);
+                const info = data as UpdateInfo;
+                setUpdateAvailable(info);
+                setUpdateStatus('Update available: ' + info.version);
             } else if (event === 'updater:update-not-available') {
                 setUpdateStatus('You are on the latest version.');
                 setTimeout(() => setUpdateStatus(null), 3000);
@@ -51,7 +53,7 @@ export default function SettingsPage() {
                 setUpdateStatus('Error checking for updates.');
                 setTimeout(() => setUpdateStatus(null), 5000);
             } else if (event === 'updater:download-progress') {
-                setUpdateProgress({ percent: data.percent });
+                setUpdateProgress(data as { percent: number });
                 setUpdateStatus('Downloading update...');
             } else if (event === 'updater:update-downloaded') {
                 setUpdateProgress(null);

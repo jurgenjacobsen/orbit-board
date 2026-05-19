@@ -67,6 +67,14 @@ export interface UserProfile {
     bio?: string;
 }
 
+export interface UpdateInfo {
+    version: string;
+    files: { url: string; size?: number; sha512?: string }[];
+    releaseName?: string | null;
+    releaseNotes?: string | string[] | null;
+    releaseDate: string;
+}
+
 export interface DatabaseSchema {
     boards: Board[];
     columns: Column[];
@@ -145,10 +153,10 @@ export interface ElectronApi {
     }>>,
 
     // Updater
-    checkForUpdates: () => Promise<any>,
-    downloadUpdate: () => Promise<any>,
+    checkForUpdates: () => Promise<unknown>,
+    downloadUpdate: () => Promise<unknown>,
     installUpdate: () => void,
-    onUpdaterEvent: (callback: (event: string, data?: any) => void) => () => void,
+    onUpdaterEvent: (callback: (event: string, data?: unknown) => void) => () => void,
 
     // Profile & Activity
     getUserProfile: () => Promise<ApiResult<UserProfile>>,
