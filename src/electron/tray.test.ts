@@ -1,6 +1,7 @@
 import { expect, Mock, test, vi } from 'vitest';
 import { createTray } from './tray.js';
 import { app, BrowserWindow, Menu, Tray, MenuItem } from 'electron';
+import type { LowDatabase } from './database.js';
 
 vi.mock('electron', () => {
     return {
@@ -31,7 +32,7 @@ const mockDb = {
     data: {
         boards: []
     }
-};
+} as unknown as LowDatabase;
 
 test('tray menu items and actions', async () => {
     await createTray(mainWindow, mockDb);
