@@ -21,6 +21,11 @@ test.beforeEach(async () => {
   await page.waitForFunction(() => {
     return !!(window as unknown as Window).api;
   }, { timeout: 10000 });
+
+  // Reset application to a clean state
+  await page.evaluate(async () => {
+    await (window as unknown as Window).api.resetApplication();
+  });
 });
 
 test.afterEach(async () => {
@@ -31,7 +36,7 @@ test('app launches and shows home page', async () => {
   const title = await page.title();
   expect(title).toBe('Orbit Board');
 
-  const homeHeader = await page.getByRole('heading', { name: 'Overview', level: 2 });
+  const homeHeader = await page.getByRole('heading', { name: /overview/i, level: 2 });
   await expect(homeHeader).toBeVisible();
 });
 
@@ -66,7 +71,8 @@ test('create and delete a board', async () => {
   await page.getByRole('button', { name: 'Confirm' }).click();
 
   // Verify we are back on Overview page (since navigate('/') is used in deleteBoard)
-  await expect(page.getByRole('heading', { name: 'Overview', level: 2 })).toBeVisible();
+  await page.waitForURL(url => url.hash === '#/' || url.hash === '');
+  await expect(page.getByRole('heading', { name: /overview/i, level: 2 })).toBeVisible();
   await page.getByRole('link', { name: 'Boards', exact: true }).click();
   await expect(page.getByRole('heading', { name: boardName, exact: true })).not.toBeVisible();
 });
@@ -90,14 +96,14 @@ test('column and card operations', async () => {
   const columnName = 'Done';
   await page.getByPlaceholder('Column name').fill(columnName);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText(columnName)).toBeVisible();
+  await expect(page.getByRole('heading', { name: columnName }).first()).toBeVisible();
 
   // Add a card to the first column (To Do)
   const todoColumn = page.locator('.w-80').filter({ has: page.getByRole('heading', { name: 'To Do', exact: true }) }).first();
   await todoColumn.getByText('Add card').click();
   const cardTitle = 'E2E Task';
   await page.getByPlaceholder('Card title').fill(cardTitle);
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await todoColumn.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByRole('heading', { name: cardTitle, exact: true })).toBeVisible();
 
   // Edit the card
@@ -192,7 +198,7 @@ test('search and filtering', async () => {
   // Test Global Search on Boards
   await page.locator('button').filter({ has: page.locator('svg.lucide-arrow-left') }).click();
   // Wait for Overview page to load
-  await expect(page.getByRole('heading', { name: 'Overview', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /overview/i, level: 2 })).toBeVisible();
 
   await page.getByRole('link', { name: 'Boards', exact: true }).click();
   await page.getByPlaceholder('Global search cards...').fill('Find Me');

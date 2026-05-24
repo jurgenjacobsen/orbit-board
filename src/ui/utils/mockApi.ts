@@ -2,28 +2,32 @@
 // This provides fake data when window.api is not available (i.e., not in Electron)
 import type { Board, Column, Card, Label, ApiResult, Attachment, UserProfile } from '../../types';
 
-let mockBoards: Board[] = [
+const INITIAL_BOARDS: Board[] = [
     { id: '1', name: 'Personal Tasks', description: 'My daily to-do list', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     { id: '2', name: 'Work Project', description: 'Orbit Board development', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     { id: '3', name: 'Vacation Planning', description: 'Summer trip 2026', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
 ];
 
-let mockColumns: Column[] = [
+const INITIAL_COLUMNS: Column[] = [
     { id: 'c1', board_id: '1', name: 'To Do', position: 0, created_at: new Date().toISOString() },
     { id: 'c2', board_id: '1', name: 'In Progress', position: 1, created_at: new Date().toISOString() },
     { id: 'c3', board_id: '1', name: 'Done', position: 2, created_at: new Date().toISOString() }
 ];
 
-let mockCards: Card[] = [
+const INITIAL_CARDS: Card[] = [
     { id: 'card1', column_id: 'c1', title: 'Buy milk', description: '2% or whole', notes: null, due_date: null, position: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     { id: 'card2', column_id: 'c1', title: 'Call bank', description: 'Ask about credit card', notes: null, due_date: new Date().toISOString(), position: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
 ];
 
-let mockLabels: Label[] = [
+const INITIAL_LABELS: Label[] = [
     { id: 'l1', board_id: '1', name: 'Urgent', color: '#ef4444' },
     { id: 'l2', board_id: '1', name: 'Low Priority', color: '#10b981' }
 ];
 
+let mockBoards: Board[] = JSON.parse(JSON.stringify(INITIAL_BOARDS));
+let mockColumns: Column[] = JSON.parse(JSON.stringify(INITIAL_COLUMNS));
+let mockCards: Card[] = JSON.parse(JSON.stringify(INITIAL_CARDS));
+let mockLabels: Label[] = JSON.parse(JSON.stringify(INITIAL_LABELS));
 let mockAttachments: Attachment[] = [];
 
 export const mockApi = {
@@ -284,6 +288,11 @@ export const mockApi = {
     },
 
     resetApplication: async (): Promise<ApiResult<void>> => {
+        mockBoards = JSON.parse(JSON.stringify(INITIAL_BOARDS));
+        mockColumns = JSON.parse(JSON.stringify(INITIAL_COLUMNS));
+        mockCards = JSON.parse(JSON.stringify(INITIAL_CARDS));
+        mockLabels = JSON.parse(JSON.stringify(INITIAL_LABELS));
+        mockAttachments = [];
         return { success: true };
     },
     getOverviewData: async (): Promise<ApiResult<{
@@ -351,6 +360,17 @@ export const mockApi = {
     },
     clearDiscordActivity: async (): Promise<void> => {
         console.log(`[Mock Discord] Clearing activity`);
+    },
+
+    // Plugins
+    getPlugins: async (): Promise<ApiResult<any[]>> => {
+        return { success: true, data: [] };
+    },
+    togglePlugin: async (_id: string, _enabled: boolean): Promise<ApiResult<void>> => {
+        return { success: true };
+    },
+    updatePluginSetting: async (_id: string, _key: string, _value: any): Promise<ApiResult<void>> => {
+        return { success: true };
     }
 };
 

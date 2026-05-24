@@ -22,3 +22,11 @@ export function getDatabasePath(): string {
     const userDataPath = app.getPath('userData');
     return path.join(userDataPath, 'OrbitBoard.json');
 }
+
+export function getPluginsPath(): string {
+    if (isDev()) {
+        return path.join(app.getAppPath(), 'plugins');
+    }
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, 'plugins');
+}

@@ -40,11 +40,12 @@
 
 ## 6. Community & Open Source
 - [x] **Contribution Guidelines**: Establish clear guidelines for contributing to the project, including code style, testing requirements, and issue reporting. (CONTRIBUTING.md)
-- [ ] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations). Provide documentation and examples for plugin development.
-- [ ] **Documentation**: Create comprehensive documentation for both users and developers, including API references for plugins.
+- [x] **Plugin System**: Design a plugin architecture to allow third-party developers to extend functionality (e.g., custom card types, integrations). Provide documentation and examples for plugin development.
+- [x] **Documentation**: Create comprehensive documentation for both users and developers, including API references for plugins.
 
-## 7. Future Roadmap
-- [ ] **Calendar Page**: Add a calendar view that shows all cards with due dates in a calendar format, allowing users to see their schedule at a glance and easily drag and drop cards to change their due dates.
+## 7. Second Row of Features
+- [x] **Calendar Page**: Add a calendar view that shows all cards with due dates in a calendar format, allowing users to see their schedule at a glance and easily drag and drop cards to change their due dates.
+- [x] **Sample Plugin**: Develop a sample plugin such as a weather plugin that shows the current weather in the calendar page using a public weather API (openweathermap.org) to demonstrate how to create plugins and encourage community development.
 - [ ] **Improve Due Dates**: Add time selection for due dates, not just dates. Parse the due date input to allow natural language (e.g., "tomorrow at 5pm", "next Monday", etc.) and also add a visual indicator on cards that are overdue or due soon.
 - [ ] **Collaboration Features**: Implement real-time collaboration for multiple users working on the same board, with presence indicators and conflict resolution.
 - [ ] **Static Share**: Allow users to generate a static HTML export of a board for sharing without requiring the app, and also a QR Code share that will have the board data encoded in the QR code itself, allowing users to share boards easily without needing to export/import files.

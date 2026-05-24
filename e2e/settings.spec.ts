@@ -21,10 +21,10 @@ test.afterEach(async () => {
 test('navigate to settings and toggle dark mode', async () => {
   // Navigate to Settings
   await page.getByRole('link', { name: 'Settings' }).click();
-  await expect(page.getByRole('heading', { name: 'Settings', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /settings/i, level: 2 })).toBeVisible();
 
   // Find Dark Mode toggle
-  const uiSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'UI' }) });
+  const uiSection = page.locator('section').filter({ has: page.getByRole('heading', { name: /ui/i }) });
   const darkModeToggle = uiSection.getByRole('button');
   
   // Get current state (should be dark by default based on useDarkMode hook)

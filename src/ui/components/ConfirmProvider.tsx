@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
-import { ConfirmContext, ConfirmOptions } from './ConfirmContext';
+import { ConfirmContext } from './ConfirmContext';
+import type { ConfirmOptions } from './ConfirmContext';
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     const [modalConfig, setModalConfig] = useState<{

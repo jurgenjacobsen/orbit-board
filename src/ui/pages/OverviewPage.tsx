@@ -142,11 +142,11 @@ export default function OverviewPage() {
                         <section className='mt-16 pt-10 border-t border-gray-100'>
                             <h3 className='text-xl font-bold mb-6 text-gray-800'>Quick Actions</h3>
                             <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                                <Link to="/boards" className='p-6 bg-blue-50 text-blue-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-blue-50 transition-colors border border-blue-200'>
+                                <Link to="/boards" className='p-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors border border-blue-300 duration-300'>
                                     <Layout className='h-8 w-8' />
                                     <span className='font-bold'>Manage Boards</span>
                                 </Link>
-                                <Link to="/recycle-bin" className='p-6 bg-red-50 text-red-700 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-red-100 transition-colors border border-red-100'>
+                                <Link to="/recycle-bin" className='p-6 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors border border-red-300 duration-300'>
                                     <AlertCircle className='h-8 w-8' />
                                     <span className='font-bold'>Recycle Bin</span>
                                 </Link>

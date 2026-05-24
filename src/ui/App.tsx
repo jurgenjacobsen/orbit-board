@@ -1,7 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Settings, User, Menu, X, SquareLibrary, Calendar } from 'lucide-react';
+import { Home, Settings, User, Menu, X, SquareLibrary, Calendar, Puzzle } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage.tsx';
 import BoardsPage from './pages/BoardsPage.tsx';
 import BoardPage from './pages/BoardPage.tsx';
@@ -9,7 +9,9 @@ import SettingsPage from './pages/SettingsPage.tsx';
 import RecycleBinPage from './pages/RecycleBinPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import { ConfirmProvider } from './components/ConfirmProvider';
+import { PluginProvider } from './components/PluginProvider';
 import CalendarPage from './pages/CalendarPage.tsx';
+import PluginsPage from './pages/PluginsPage.tsx';
 
 interface NavLink {
     to: string;
@@ -36,6 +38,7 @@ function Sidebar({ isExpanded, toggleSidebar, navLinks }: { isExpanded: boolean;
                     if (key === 'o') navigate('/');
                     if (key === 'b') navigate('/boards');
                     if (key === 'p') navigate('/profile');
+                    if (key === 'l') navigate('/plugins');
                     if (key === 's') navigate('/settings');
                     if (key === 'c') navigate('/calendar');
                     if (key === 'r') navigate('/recycle-bin');
@@ -128,14 +131,17 @@ function App() {
         { to: '/boards', label: 'Boards', icon: SquareLibrary },
         { to: '/calendar', label: 'Calendar', icon: Calendar },
         { to: '/profile', label: 'Profile', icon: User },
+        { to: '/plugins', label: 'Plugins', icon: Puzzle },
         { to: '/settings', label: 'Settings', icon: Settings },
     ];
 
     return (
         <ConfirmProvider>
-            <Router>
-                <AppContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} navLinks={navLinks} />
-            </Router>
+            <PluginProvider>
+                <Router>
+                    <AppContent isExpanded={isExpanded} setIsExpanded={setIsExpanded} navLinks={navLinks} />
+                </Router>
+            </PluginProvider>
         </ConfirmProvider>
     );
 }
@@ -163,6 +169,7 @@ function AppContent({ isExpanded, setIsExpanded, navLinks }: { isExpanded: boole
                     <Route path='/recycle-bin' element={<RecycleBinPage />} />
                     <Route path='/profile' element={<ProfilePage />} />
                     <Route path='/calendar' element={<CalendarPage />} />
+                    <Route path='/plugins' element={<PluginsPage />} />
                     <Route path='/settings' element={<SettingsPage />} />
                 </Routes>
             </main>

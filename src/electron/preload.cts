@@ -40,15 +40,14 @@ contextBridge.exposeInMainWorld('api', {
   addAttachment: (cardId: string, file: any) => ipcRenderer.invoke('db:addAttachment', { cardId, file }),
   removeAttachment: (id: string) => ipcRenderer.invoke('db:removeAttachment', id),
 
-
   // Label operations
-  getLabels: (boardId) => ipcRenderer.invoke('db:getLabels', boardId),
-  createLabel: (label) => ipcRenderer.invoke('db:createLabel', label),
-  updateLabel: (label) => ipcRenderer.invoke('db:updateLabel', label),
-  deleteLabel: (id) => ipcRenderer.invoke('db:deleteLabel', id),
-  getCardLabels: (cardId) => ipcRenderer.invoke('db:getCardLabels', cardId),
-  addLabelToCard: (cardId, labelId) => ipcRenderer.invoke('db:addLabelToCard', { cardId, labelId }),
-  removeLabelFromCard: (cardId, labelId) => ipcRenderer.invoke('db:removeLabelFromCard', { cardId, labelId }),
+  getLabels: (boardId: string) => ipcRenderer.invoke('db:getLabels', boardId),
+  createLabel: (label: any) => ipcRenderer.invoke('db:createLabel', label),
+  updateLabel: (label: any) => ipcRenderer.invoke('db:updateLabel', label),
+  deleteLabel: (id: string) => ipcRenderer.invoke('db:deleteLabel', id),
+  getCardLabels: (cardId: string) => ipcRenderer.invoke('db:getCardLabels', cardId),
+  addLabelToCard: (cardId: string, labelId: string) => ipcRenderer.invoke('db:addLabelToCard', { cardId, labelId }),
+  removeLabelFromCard: (cardId: string, labelId: string) => ipcRenderer.invoke('db:removeLabelFromCard', { cardId, labelId }),
 
   // Settings operations
   resetApplication: () => ipcRenderer.invoke('db:resetApplication'),
@@ -99,5 +98,10 @@ contextBridge.exposeInMainWorld('api', {
     const subscription = (_event: any, path: string) => callback(path);
     ipcRenderer.on('navigate', subscription);
     return () => ipcRenderer.removeListener('navigate', subscription);
-  }
-} satisfies Window['api']);
+  },
+
+  // Plugin operations
+  getPlugins: () => ipcRenderer.invoke('plugins:getPlugins'),
+  togglePlugin: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:togglePlugin', { id, enabled }),
+  updatePluginSetting: (id: string, key: string, value: any) => ipcRenderer.invoke('plugins:updatePluginSetting', { id, key, value })
+});

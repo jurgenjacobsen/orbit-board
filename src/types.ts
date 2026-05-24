@@ -67,6 +67,31 @@ export interface UserProfile {
     bio?: string;
 }
 
+export interface PluginSettingDefinition {
+    key: string;
+    label: string;
+    type: 'string' | 'boolean' | 'number' | 'password';
+    default?: any;
+    description?: string;
+}
+
+export interface PluginMetadata {
+    id: string;
+    name: string;
+    version: string;
+    description?: string;
+    author?: string;
+    main?: string;
+    renderer?: string;
+    settings?: PluginSettingDefinition[];
+}
+
+export interface PluginInfo extends PluginMetadata {
+    path: string;
+    enabled: boolean;
+    settingsValues?: Record<string, any>;
+}
+
 export interface UpdateInfo {
     version: string;
     files: { url: string; size?: number; sha512?: string }[];
@@ -83,6 +108,7 @@ export interface DatabaseSchema {
     card_labels: CardLabel[];
     attachments: Attachment[];
     settings: Setting[];
+    plugins?: { id: string; enabled: boolean; settings?: Record<string, any> }[];
 }
 
 export interface ApiResult<T> {
@@ -168,7 +194,12 @@ export interface ElectronApi {
     clearDiscordActivity: () => Promise<void>,
 
     // Navigation from Tray
-    onNavigate: (callback: (path: string) => void) => () => void
+    onNavigate: (callback: (path: string) => void) => () => void,
+
+    // Plugin operations
+    getPlugins: () => Promise<ApiResult<PluginInfo[]>>,
+    togglePlugin: (id: string, enabled: boolean) => Promise<ApiResult<void>>,
+    updatePluginSetting: (id: string, key: string, value: any) => Promise<ApiResult<void>>
 }
 
 declare global {

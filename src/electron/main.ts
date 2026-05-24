@@ -1,18 +1,38 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
-import { formatICalDate, generateId, handleCloseEvents, isDev } from './util.js';
-import { getPreloadPath } from './pathResolver.js';
-import { createTray } from './tray.js';
+import { app, BrowserWindow, dialog, ipcMain, Notification, protocol, net } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import { pathToFileURL } from 'url';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
-import path from 'path';
+
+// Register custom protocol as privileged BEFORE app is ready
+// This MUST be called only once and as early as possible.
+protocol.registerSchemesAsPrivileged([
+    { 
+        scheme: 'plugin', 
+        privileges: { 
+            standard: true, 
+            secure: true, 
+            supportFetchAPI: true, 
+            corsEnabled: true, 
+            stream: true,
+            bypassCSP: true
+        } 
+    }
+]);
+
+import { formatICalDate, generateId, handleCloseEvents, isDev } from './util.js';
+import { getPreloadPath, getPluginsPath } from './pathResolver.js';
+import { createTray } from './tray.js';
+import { initDatabase } from './database.js';
+import { initDiscordRPC, setActivity, clearActivity } from './discord.js';
+import { PluginManager } from './pluginManager.js';
 import type { Board, Column, Card, Label, Setting, CardLabel, Attachment, UserProfile } from '../types.js';
 import type { LowDatabase } from './database.js';
-import { initDatabase } from './database.js';
-import fs from 'fs';
-import { initDiscordRPC, setActivity, clearActivity } from './discord.js';
 
 let mainWindow: BrowserWindow | null = null;
 let db: LowDatabase;
+let pluginManager: PluginManager;
 const notificationTimeouts: NodeJS.Timeout[] = [];
 const notifiedCards = new Set<string>();
 
@@ -121,6 +141,52 @@ app.on('ready', async () => {
     db = await initDatabase();
     await purgeRecycleBin(db);
 
+    // Register plugin protocol to serve plugin files
+    protocol.handle('plugin', async (request) => {
+        try {
+            const url = new URL(request.url);
+            const pluginId = url.host;
+            const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
+            
+            const basePluginsPath = getPluginsPath();
+            const filePath = path.join(basePluginsPath, pluginId, pathname);
+            
+            if (isDev()) {
+                console.log(`[Plugin Protocol] Request: ${request.url}`);
+                console.log(`[Plugin Protocol] Resolved Path: ${filePath}`);
+            }
+
+            if (!fs.existsSync(filePath)) {
+                console.error(`[Plugin Protocol] File not found: ${filePath}`);
+                return new Response('Not Found', { status: 404 });
+            }
+            
+            const data = fs.readFileSync(filePath);
+            const extension = path.extname(filePath).toLowerCase();
+            
+            let mimeType = 'text/plain';
+            if (extension === '.js') mimeType = 'text/javascript; charset=utf-8';
+            else if (extension === '.json') mimeType = 'application/json; charset=utf-8';
+            else if (extension === '.css') mimeType = 'text/css; charset=utf-8';
+            else if (extension === '.png') mimeType = 'image/png';
+            else if (extension === '.jpg' || extension === '.jpeg') mimeType = 'image/jpeg';
+            else if (extension === '.svg') mimeType = 'image/svg+xml';
+            
+            return new Response(data, {
+                headers: { 
+                    'Content-Type': mimeType,
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        } catch (error) {
+            console.error(`[Plugin Protocol] Error handling request ${request.url}:`, error);
+            return new Response('Internal Server Error', { status: 500 });
+        }
+    });
+
+    pluginManager = new PluginManager(db);
+    await pluginManager.loadPlugins();
+
     const launchAtStartup = db.data.settings.find(s => s.key === 'launchAtStartup')?.value === 'true';
     const startMinimized = db.data.settings.find(s => s.key === 'startMinimized')?.value === 'true';
 
@@ -138,6 +204,7 @@ app.on('ready', async () => {
         show: !startMinimized,
         webPreferences: {
             preload: getPreloadPath(),
+            webSecurity: true, // Keep web security enabled
         }
     });
 
@@ -251,7 +318,6 @@ ipcMain.handle('discord:clearActivity', () => {
 // Database IPC Handlers
 ipcMain.handle('db:getBoards', async (_event, options: { includeArchived?: boolean; includeDeleted?: boolean } = {}) => {
     try {
-        // Removed redundant db.read() for performance
         let boards = db.data.boards;
 
         if (!options.includeDeleted) {
@@ -457,7 +523,6 @@ ipcMain.handle('db:emptyRecycleBin', async () => {
 
 ipcMain.handle('db:getColumns', async (_event, { boardId, options = {} }: { boardId: string, options: { includeArchived?: boolean, includeDeleted?: boolean } }) => {
     try {
-        // Removed redundant db.read()
         let columns = db.data.columns.filter((c: Column) => c.board_id === boardId);
         if (!options.includeDeleted) columns = columns.filter((c: Column) => !c.deleted_at);
         if (!options.includeArchived) columns = columns.filter((c: Column) => !c.archived);
@@ -521,7 +586,7 @@ ipcMain.handle('db:deleteColumn', async (_event, { id, permanent }: { id: string
             db.data.cards = db.data.cards.filter((c: Card) => c.column_id !== id);
         } else {
             const index = db.data.columns.findIndex((c: Column) => c.id === id);
-            if (index >= 0) db.data.columns[index].deleted_at = new Date().toISOString();
+            if (index >= 0) { db.data.columns[index].deleted_at = new Date().toISOString(); }
         }
         await db.write();
         return { success: true };
@@ -535,7 +600,7 @@ ipcMain.handle('db:updateColumnsPositions', async (_event, columns: { id: string
         await db.read();
         for (const col of columns) {
             const index = db.data.columns.findIndex((c: Column) => c.id === col.id);
-            if (index >= 0) db.data.columns[index].position = col.position;
+            if (index >= 0) { db.data.columns[index].position = col.position; }
         }
         await db.write();
         return { success: true };
@@ -871,6 +936,34 @@ ipcMain.handle('db:getActivityStats', async () => {
         db.data.cards.forEach(card => { addDate(card.created_at); if (card.updated_at && card.updated_at !== card.created_at) addDate(card.updated_at); });
         db.data.boards.forEach(b => addDate(b.created_at)); db.data.columns.forEach(c => addDate(c.created_at)); db.data.attachments.forEach(a => addDate(a.created_at));
         return { success: true, data: stats };
+    } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+});
+
+// Plugin IPC Handlers
+ipcMain.handle('plugins:getPlugins', async () => {
+    try {
+        const plugins = await pluginManager.getPlugins();
+        return { success: true, data: plugins };
+    } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+});
+
+ipcMain.handle('plugins:togglePlugin', async (_event, { id, enabled }: { id: string, enabled: boolean }) => {
+    try {
+        await pluginManager.togglePlugin(id, enabled);
+        return { success: true };
+    } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+});
+
+ipcMain.handle('plugins:updatePluginSetting', async (_event, { id, key, value }: { id: string, key: string, value: any }) => {
+    try {
+        await pluginManager.updatePluginSetting(id, key, value);
+        return { success: true };
     } catch (error: unknown) {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }

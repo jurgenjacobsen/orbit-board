@@ -1,0 +1,29 @@
+{
+  "id": "weather-plugin",
+  "name": "Weather Plugin",
+  "version": "1.0.0",
+  "description": "Shows current weather in the calendar page.",
+  "author": "Orbit Board Team",
+  "renderer": "renderer.js",
+  "settings": [
+    {
+      "key": "apiKey",
+      "label": "OpenWeather API Key",
+      "type": "password",
+      "description": "Get your API key at openweathermap.org"
+    },
+    {
+      "key": "location",
+      "label": "Location",
+      "type": "string",
+      "default": "London",
+      "description": "City name for weather data"
+    },
+    {
+      "key": "showCelsius",
+      "label": "Show Celsius",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}
