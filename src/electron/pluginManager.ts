@@ -4,10 +4,16 @@ import { getPluginsPath } from './pathResolver.js';
 import type { PluginInfo, PluginMetadata } from '../types.js';
 import type { LowDatabase } from './database.js';
 
+interface LoadedPlugin {
+    init?: (context: { db: LowDatabase }) => Promise<void>;
+    deinit?: () => Promise<void>;
+    onSettingChange?: (key: string, value: unknown) => Promise<void>;
+}
+
 export class PluginManager {
     private pluginsPath: string;
     private db: LowDatabase;
-    private loadedPlugins: Map<string, any> = new Map();
+    private loadedPlugins: Map<string, LoadedPlugin> = new Map();
 
     constructor(db: LowDatabase) {
         this.db = db;
@@ -38,7 +44,7 @@ export class PluginManager {
                     const dbPlugin = this.db.data.plugins?.find(p => p.id === metadata.id);
                     
                     // Merge default settings with stored values
-                    const settingsValues: Record<string, any> = {};
+                    const settingsValues: Record<string, unknown> = {};
                     metadata.settings?.forEach(s => {
                         settingsValues[s.key] = s.default;
                     });
@@ -61,7 +67,7 @@ export class PluginManager {
         return plugins;
     }
 
-    async updatePluginSetting(id: string, key: string, value: any): Promise<void> {
+    async updatePluginSetting(id: string, key: string, value: unknown): Promise<void> {
         if (!this.db.data.plugins) this.db.data.plugins = [];
         const index = this.db.data.plugins.findIndex(p => p.id === id);
         if (index !== -1) {
@@ -133,7 +139,7 @@ export class PluginManager {
             try {
                 // Using file:// protocol for ESM dynamic import on Windows/Unix
                 const mainUrl = `file://${mainPath.replace(/\\/g, '/')}`;
-                const pluginModule = await import(mainUrl);
+                const pluginModule = await import(mainUrl) as LoadedPlugin;
                 if (pluginModule.init) {
                     await pluginModule.init({
                         db: this.db,

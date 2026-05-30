@@ -363,13 +363,13 @@ export const mockApi = {
     },
 
     // Plugins
-    getPlugins: async (): Promise<ApiResult<any[]>> => {
+    getPlugins: async (): Promise<ApiResult<PluginInfo[]>> => {
         return { success: true, data: [] };
     },
     togglePlugin: async (_id: string, _enabled: boolean): Promise<ApiResult<void>> => {
         return { success: true };
     },
-    updatePluginSetting: async (_id: string, _key: string, _value: any): Promise<ApiResult<void>> => {
+    updatePluginSetting: async (_id: string, _key: string, _value: unknown): Promise<ApiResult<void>> => {
         return { success: true };
     }
 };

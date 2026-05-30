@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Hash } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Hash } from 'lucide-react';
 import { getApi } from '../utils/mockApi';
 import type { Card, Board } from '../../types';
 import { useNavigate } from 'react-router-dom';
@@ -198,7 +198,7 @@ export default function CalendarPage() {
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
     return (
-        <div className="flex flex-col h-full ">
+        <div className="flex flex-col h-[98%] mt-4">
             <header className='pt-4 border-b border-gray-300 mx-6 mb-6 pb-4 flex flex-col md:flex-row items-center justify-between gap-4'>
                 <div className="flex items-baseline gap-4">
                     <h2 className='text-3xl font-extrabold text-gray-900 uppercase tracking-tight'>Calendar</h2>
@@ -223,22 +223,22 @@ export default function CalendarPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-white rounded-lg ring-1 ring-gray-300 p-1 text-sm">
+                        <div className="flex items-center bg-white rounded-lg border border-gray-300 p-1 text-sm">
                             <button
                                 onClick={handlePrev}
-                                className=" hover:bg-gray-100 rounded-md transition-colors cursor-pointer p-1"
+                                className=" hover:bg-gray-100 rounded-lg transition-colors cursor-pointer p-1"
                             >
                                 <ChevronLeft className="h-5 w-5" />
                             </button>
                             <button
                                 onClick={handleToday}
-                                className="px-3 py-1 text-sm font-medium hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                                className="px-3 py-1 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                             >
                                 Today
                             </button>
                             <button
                                 onClick={handleNext}
-                                className="hover:bg-gray-100 rounded-md transition-colors cursor-pointer p-1"
+                                className="hover:bg-gray-100 rounded-lg transition-colors cursor-pointer p-1"
                             >
                                 <ChevronRight className="h-5 w-5" />
                             </button>
@@ -303,7 +303,7 @@ export default function CalendarPage() {
                                                             draggable
                                                             onDragStart={(e) => handleDragStart(e, card)}
                                                             onClick={() => navigate(`/board/${card.boardId}`)}
-                                                            className="group relative p-1.5 text-[10px] bg-white ring-1 ring-gray-200 rounded shadow-sm hover:ring-gray-400 hover:shadow-md transition-all cursor-pointer overflow-hidden border-l-2"
+                                                            className="group relative p-1.5 text-[10px] bg-white ring-1 ring-gray-300 rounded shadow-sm hover:ring-gray-400 hover:shadow-md transition-all cursor-pointer overflow-hidden border-l-2"
                                                             style={{ borderLeftColor: '#3b82f6' }}
                                                         >
                                                             <div className="font-bold truncate">{card.title}</div>

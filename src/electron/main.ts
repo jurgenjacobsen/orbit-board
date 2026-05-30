@@ -1,7 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, protocol, net } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Notification, protocol } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { pathToFileURL } from 'url';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 

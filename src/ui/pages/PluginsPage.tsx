@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getApi } from "../utils/mockApi";
-import { useConfirm, useAlert } from "../hooks/useConfirm";
+import { useAlert } from "../hooks/useConfirm";
 import type { PluginInfo, PluginSettingDefinition } from "../../types";
 import { usePlugins } from "../components/PluginProvider";
 import { Settings, Puzzle, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
@@ -9,7 +9,6 @@ export default function PluginsPage() {
     const { plugins, updatePluginSetting } = usePlugins();
     const [localPlugins, setLocalPlugins] = useState<PluginInfo[]>([]);
     const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null);
-    const confirm = useConfirm();
     const alert = useAlert();
 
     useEffect(() => {
@@ -19,19 +18,18 @@ export default function PluginsPage() {
     const handleToggle = async (plugin: PluginInfo) => {
         const result = await getApi().togglePlugin(plugin.id, !plugin.enabled);
         if (result.success) {
-            setLocalPlugins(prev => prev.map(p => 
+            setLocalPlugins(prev => prev.map(p =>
                 p.id === plugin.id ? { ...p, enabled: !p.enabled } : p
             ));
         } else {
             alert({
                 title: 'Error',
                 message: `Failed to ${plugin.enabled ? 'disable' : 'enable'} plugin: ${result.error}`,
-                type: 'error'
             });
         }
     };
 
-    const handleSettingChange = async (pluginId: string, key: string, value: any) => {
+    const handleSettingChange = async (pluginId: string, key: string, value: unknown) => {
         await updatePluginSetting(pluginId, key, value);
     };
 
@@ -45,14 +43,14 @@ export default function PluginsPage() {
                         type="checkbox"
                         checked={!!value}
                         onChange={(e) => handleSettingChange(plugin.id, setting.key, e.target.checked)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer ml-2"
                     />
                 );
             case 'password':
                 return (
                     <input
                         type="password"
-                        value={value || ''}
+                        value={(value as string) || ''}
                         onChange={(e) => handleSettingChange(plugin.id, setting.key, e.target.value)}
                         className="block w-full px-3 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -61,7 +59,7 @@ export default function PluginsPage() {
                 return (
                     <input
                         type="number"
-                        value={value || 0}
+                        value={(value as number) || 0}
                         onChange={(e) => handleSettingChange(plugin.id, setting.key, Number(e.target.value))}
                         className="block w-full px-3 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -70,7 +68,7 @@ export default function PluginsPage() {
                 return (
                     <input
                         type="text"
-                        value={value || ''}
+                        value={(value as string) || ''}
                         onChange={(e) => handleSettingChange(plugin.id, setting.key, e.target.value)}
                         className="block w-full px-3 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -79,11 +77,13 @@ export default function PluginsPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-gray-50">
-            <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Puzzle className="h-6 w-6 text-indigo-600" />
-                    <h2 className="text-xl font-bold text-gray-900">Plugins</h2>
+        <div className="mt-4">
+            <header className='pt-4 border-b border-gray-300 mx-6 mb-10 pb-2 flex items-start justify-between gap-4'>
+                <div className="flex items-baseline gap-4">
+                    <h2 className='text-3xl font-extrabold text-gray-900 mb-2 uppercase tracking-tight'>Plugins</h2>
+                    <p className='text-gray-500 tracking-wide truncate'>
+                        Manage your plugins and their settings here.
+                    </p>
                 </div>
             </header>
 
@@ -95,20 +95,20 @@ export default function PluginsPage() {
                         <p className="text-gray-400 text-sm">Plugins should be placed in the plugins folder.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {localPlugins.map((plugin) => (
-                            <div key={plugin.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all hover:shadow-md">
+                            <div key={plugin.id} className="bg-white rounded-lg border border-gray-300 overflow-hidden transition-all hover:shadow-sm">
                                 <div className="p-5 flex items-start justify-between">
                                     <div className="flex gap-4">
-                                        <div className={`p-3 rounded-lg ${plugin.enabled ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
-                                            <Puzzle className="h-6 w-6" />
+                                        <div className={`h-22 w-22 rounded-lg ${plugin.enabled ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'} flex items-center justify-center`}>
+                                            <Puzzle className="" />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-gray-900 text-lg">{plugin.name}</h3>
-                                                <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded uppercase">v{plugin.version}</span>
+                                                <h3 className="font-bold text-lg">{plugin.name}</h3>
+                                                <span className="text-xs font-mono bg-gray-100 text-gray-500 px-4 py-1 rounded uppercase">v{plugin.version}</span>
                                             </div>
-                                            <p className="text-gray-600 text-sm mt-1">{plugin.description}</p>
+                                            <p className="text-gray-700 text-sm mt-2">{plugin.description}</p>
                                             <div className="flex items-center gap-4 mt-3">
                                                 <span className="text-xs text-gray-400 flex items-center gap-1">
                                                     Author: <span className="text-gray-600">{plugin.author || 'Unknown'}</span>
@@ -126,22 +126,22 @@ export default function PluginsPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-3">
+                                    <div className="flex flex-col items-end gap-4">
                                         <button
                                             onClick={() => handleToggle(plugin)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                                                plugin.enabled 
-                                                ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer w-full ${
+                                                plugin.enabled
+                                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
                                                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                             }`}
                                         >
                                             {plugin.enabled ? 'Disable' : 'Enable'}
                                         </button>
-                                        
+
                                         {plugin.settings && plugin.settings.length > 0 && (
-                                            <button 
+                                            <button
                                                 onClick={() => setExpandedPlugin(expandedPlugin === plugin.id ? null : plugin.id)}
-                                                className="text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 text-sm"
+                                                className="text-gray-400 hover:text-gray-600 bg-gray-100 transition-colors flex items-center justify-between gap-1 text-sm cursor-pointer px-4 py-2 rounded-lg text-center w-full"
                                             >
                                                 <Settings className="h-4 w-4" />
                                                 Settings
@@ -156,13 +156,13 @@ export default function PluginsPage() {
                                         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Plugin Configuration</h4>
                                         <div className="space-y-4">
                                             {plugin.settings.map((setting) => (
-                                                <div key={setting.key} className="flex flex-col gap-1.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <label className="text-sm font-medium text-gray-700">{setting.label}</label>
+                                                <div key={setting.key} className="w-full">
+                                                    <div className="">
+                                                        <label className="text-sm font-medium text-gray-700 mb-1">{setting.label}</label>
                                                         {renderSettingInput(plugin, setting)}
                                                     </div>
                                                     {setting.description && (
-                                                        <p className="text-xs text-gray-400">{setting.description}</p>
+                                                        <p className="text-xs text-gray-400 mt-2">{setting.description}</p>
                                                     )}
                                                 </div>
                                             ))}

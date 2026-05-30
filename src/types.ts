@@ -71,7 +71,7 @@ export interface PluginSettingDefinition {
     key: string;
     label: string;
     type: 'string' | 'boolean' | 'number' | 'password';
-    default?: any;
+    default?: unknown;
     description?: string;
 }
 
@@ -89,7 +89,7 @@ export interface PluginMetadata {
 export interface PluginInfo extends PluginMetadata {
     path: string;
     enabled: boolean;
-    settingsValues?: Record<string, any>;
+    settingsValues?: Record<string, unknown>;
 }
 
 export interface UpdateInfo {
@@ -108,7 +108,7 @@ export interface DatabaseSchema {
     card_labels: CardLabel[];
     attachments: Attachment[];
     settings: Setting[];
-    plugins?: { id: string; enabled: boolean; settings?: Record<string, any> }[];
+    plugins?: { id: string; enabled: boolean; settings?: Record<string, unknown> }[];
 }
 
 export interface ApiResult<T> {
@@ -199,7 +199,7 @@ export interface ElectronApi {
     // Plugin operations
     getPlugins: () => Promise<ApiResult<PluginInfo[]>>,
     togglePlugin: (id: string, enabled: boolean) => Promise<ApiResult<void>>,
-    updatePluginSetting: (id: string, key: string, value: any) => Promise<ApiResult<void>>
+    updatePluginSetting: (id: string, key: string, value: unknown) => Promise<ApiResult<void>>
 }
 
 declare global {

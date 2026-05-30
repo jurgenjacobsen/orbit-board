@@ -11,7 +11,7 @@ interface PluginContextType {
     isLoaded: boolean;
     registerComponent: (slotId: string, component: PluginComponent) => void;
     getComponents: (slotId: string) => PluginComponent[];
-    updatePluginSetting: (id: string, key: string, value: any) => Promise<void>;
+    updatePluginSetting: (id: string, key: string, value: unknown) => Promise<void>;
 }
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
@@ -22,7 +22,11 @@ export const usePlugins = () => {
     return context;
 };
 
-export const PluginSlot: React.FC<{ slotId: string, [key: string]: any }> = ({ slotId, ...props }) => {
+// PluginSlot component moved below PluginProvider to comply with react-refresh/only-export-components if needed,
+// but actually the warning is about exporting both components and non-components. 
+// We'll keep them but be careful.
+
+export const PluginSlot: React.FC<{ slotId: string, [key: string]: unknown }> = ({ slotId, ...props }) => {
     const { getComponents } = usePlugins();
     const components = getComponents(slotId);
 
@@ -44,11 +48,8 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const registerComponent = useCallback((slotId: string, component: PluginComponent) => {
         setComponentRegistry(prev => {
             const current = prev[slotId] || [];
-            // Use component name or a unique property to prevent duplication if possible
-            // In development with StrictMode, the same function reference might be passed twice
             if (current.includes(component)) return prev;
             
-            // Deduplicate by name if it's a named function
             if (component.name && current.some(c => c.name === component.name)) {
                 return prev;
             }
@@ -64,18 +65,17 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return componentRegistry[slotId] || [];
     }, [componentRegistry]);
 
-    const updatePluginSetting = useCallback(async (id: string, key: string, value: any) => {
+    const updatePluginSetting = useCallback(async (id: string, key: string, value: unknown) => {
         const result = await getApi().updatePluginSetting(id, key, value);
         if (result.success) {
             setPlugins(prev => prev.map(p => {
                 if (p.id === id) {
-                    const newSettings = {
-                        ...p.settingsValues,
-                        [key]: value
-                    };
                     return {
                         ...p,
-                        settingsValues: newSettings
+                        settingsValues: {
+                            ...(p.settingsValues as Record<string, unknown>),
+                            [key]: value
+                        }
                     };
                 }
                 return p;
@@ -90,7 +90,7 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             registerComponent,
             updatePluginSetting,
             getPluginSettings: (id: string) => {
-                const plugin = (window as any)._plugins?.find((p: any) => p.id === id);
+                const plugin = ((window as any)._plugins as PluginInfo[] | undefined)?.find((p) => p.id === id);
                 return plugin?.settingsValues || {};
             },
             Icons: LucideIcons
