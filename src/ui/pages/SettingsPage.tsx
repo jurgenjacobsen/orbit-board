@@ -182,9 +182,12 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="">
-            <header className='pt-4 border-b border-gray-300 mx-6'>
-                <h2 className='text-3xl font-semibold'>Settings</h2>
+        <div className="mt-4">
+            <header className='pt-4 border-b border-gray-300 mx-6 mb-2 pb-2 flex items-start justify-between gap-4'>
+                <div className="flex items-baseline gap-4">
+                    <h2 className='text-3xl font-extrabold text-gray-900 mb-2 uppercase tracking-tight'>Settings</h2>
+                    <p className='text-gray-500 tracking-wide truncate'>Welcome back! Here's what's happening across your boards.</p>
+                </div>
             </header>
             <main className='p-6 grid grid-cols-1 md:grid-cols-2 gap-8'>
                 <div className="space-y-8">
@@ -251,6 +254,72 @@ export default function SettingsPage() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className='text-2xl font-semibold mb-4'>Data Management</h3>
+                        <div className="p-4 bg-white border border-gray-300 rounded-lg space-y-4">
+                            <button
+                                onClick={async () => {
+                                    const api = getApi();
+                                    const result = await api.exportData();
+                                    if (result.success) {
+                                        await alert({ title: "Success", message: `Data exported successfully to ${result.data}` });
+                                    } else if (result.error !== 'Export cancelled') {
+                                        await alert({ title: "Error", message: `Failed to export data: ${result.error}`, isDanger: true });
+                                    }
+                                }}
+                                className='w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer font-medium'
+                            >
+                                Export Application Data (.json)
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const api = getApi();
+                                    const result = await api.importData();
+                                    if (result.success) {
+                                        await alert({ title: "Success", message: "Data imported successfully. The application will now reload." });
+                                        window.location.reload();
+                                    } else if (result.error !== 'Import cancelled') {
+                                        await alert({ title: "Error", message: `Failed to import data: ${result.error}`, isDanger: true });
+                                    }
+                                }}
+                                className='w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors cursor-pointer font-medium'
+                            >
+                                Import Application Data (.json)
+                            </button>
+                            <div className="pt-4 border-t border-gray-300">
+                                <button
+                                    onClick={async () => {
+                                        const api = getApi();
+                                        const result = await api.exportCalendar();
+                                        if (result.success) {
+                                            await alert({ title: "Success", message: `Calendar exported successfully to ${result.data}` });
+                                        } else if (result.error !== 'Export cancelled') {
+                                            await alert({ title: "Error", message: `Failed to export calendar: ${result.error}`, isDanger: true });
+                                        }
+                                    }}
+                                    className='w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors cursor-pointer font-medium'
+                                >
+                                    Export All Due Dates to Calendar (.ics)
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className='text-2xl font-semibold mb-4 text-red-600'>Danger Zone</h3>
+                        <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
+                            <p className="text-sm mb-4 ">
+                                Once you reset application data, there is no going back. Please be certain.
+                            </p>
+                            <button
+                                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 cursor-pointer transition-colors font-medium"
+                                onClick={resetApp}
+                            >
+                                Reset Application Data
+                            </button>
                         </div>
                     </section>
                 </div>
@@ -363,7 +432,7 @@ export default function SettingsPage() {
                                     >
                                         Check for Updates
                                     </button>
-                                    
+
                                     {updateStatus && (
                                         <div className="text-sm text-center text-gray-700 p-2 bg-gray-50 rounded">
                                             {updateStatus}
@@ -417,71 +486,7 @@ export default function SettingsPage() {
                         </div>
                     </section>
 
-                    <section>
-                        <h3 className='text-2xl font-semibold mb-4'>Data Management</h3>
-                        <div className="p-4 bg-white border border-gray-300 rounded-lg space-y-4">
-                            <button
-                                onClick={async () => {
-                                    const api = getApi();
-                                    const result = await api.exportData();
-                                    if (result.success) {
-                                        await alert({ title: "Success", message: `Data exported successfully to ${result.data}` });
-                                    } else if (result.error !== 'Export cancelled') {
-                                        await alert({ title: "Error", message: `Failed to export data: ${result.error}`, isDanger: true });
-                                    }
-                                }}
-                                className='w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer font-medium'
-                            >
-                                Export Application Data (.json)
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    const api = getApi();
-                                    const result = await api.importData();
-                                    if (result.success) {
-                                        await alert({ title: "Success", message: "Data imported successfully. The application will now reload." });
-                                        window.location.reload();
-                                    } else if (result.error !== 'Import cancelled') {
-                                        await alert({ title: "Error", message: `Failed to import data: ${result.error}`, isDanger: true });
-                                    }
-                                }}
-                                className='w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors cursor-pointer font-medium'
-                            >
-                                Import Application Data (.json)
-                            </button>
-                            <div className="pt-4 border-t border-gray-300">
-                                <button
-                                    onClick={async () => {
-                                        const api = getApi();
-                                        const result = await api.exportCalendar();
-                                        if (result.success) {
-                                            await alert({ title: "Success", message: `Calendar exported successfully to ${result.data}` });
-                                        } else if (result.error !== 'Export cancelled') {
-                                            await alert({ title: "Error", message: `Failed to export calendar: ${result.error}`, isDanger: true });
-                                        }
-                                    }}
-                                    className='w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors cursor-pointer font-medium'
-                                >
-                                    Export All Due Dates to Calendar (.ics)
-                                </button>
-                            </div>
-                        </div>
-                    </section>
 
-                    <section>
-                        <h3 className='text-2xl font-semibold mb-4 text-red-600'>Danger Zone</h3>
-                        <div className="p-4 bg-red-50 border border-red-300 rounded-lg">
-                            <p className="text-sm mb-4 ">
-                                Once you reset application data, there is no going back. Please be certain.
-                            </p>
-                            <button
-                                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 cursor-pointer transition-colors font-medium"
-                                onClick={resetApp}
-                            >
-                                Reset Application Data
-                            </button>
-                        </div>
-                    </section>
                 </div>
             </main>
         </div>
